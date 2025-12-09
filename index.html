@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -18,12 +19,24 @@
         
         .btn-action { background-color: #FBBF24; color: black; font-weight: bold; transition: all 0.2s; }
         .btn-action:active { transform: scale(0.95); }
+        .btn-action:disabled { background-color: #4B5563; color: #9CA3AF; cursor: not-allowed; }
         
         .dark-card { background-color: #1F2937; border: 1px solid #374151; border-radius: 12px; }
-        .input-dark { background-color: #111827; border: 1px solid #4b5563; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; }
-        .input-dark:focus { border-color: #FBBF24; }
-        .input-readonly { background-color: #374151; color: #9CA3AF; cursor: not-allowed; }
         
+        /* Inputs com estado de validação */
+        .input-dark { 
+            background-color: #111827; border: 1px solid #4b5563; color: white; 
+            padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; 
+        }
+        .input-dark:focus { border-color: #FBBF24; }
+        
+        .input-error { border-color: #EF4444 !important; background-color: rgba(239, 68, 68, 0.1); }
+        .input-success { border-color: #10B981 !important; background-color: rgba(16, 185, 129, 0.05); }
+        
+        .msg-error { color: #EF4444; font-size: 10px; margin-top: 4px; display: none; }
+        .msg-success { color: #10B981; font-size: 10px; margin-top: 4px; display: none; }
+
+        .input-readonly { background-color: #374151; color: #9CA3AF; cursor: not-allowed; }
         .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #FBBF24; margin-bottom: 8px; letter-spacing: 1px; border-bottom: 1px solid #374151; padding-bottom: 4px; margin-top: 16px; }
 
         /* Checkbox Customizado */
@@ -49,7 +62,7 @@
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch(e) {
             console.error("Erro ao iniciar Supabase:", e);
-            alert("Erro crítico: Banco de dados não conectado.");
+            alert("Erro crítico: Banco de dados não conectado. Verifique o console.");
         }
 
         let userSession = null;
@@ -87,20 +100,37 @@
 
         <!-- DADOS PESSOAIS -->
         <p class="section-title">Dados Pessoais</p>
-        <div class="space-y-3">
-            <input type="text" id="cad-nome" class="input-dark" placeholder="Nome Completo">
-            <input type="text" id="cad-cpf" class="input-dark" placeholder="CPF (000.000.000-00)">
+        <div class="space-y-4">
+            <div>
+                <input type="text" id="cad-nome" class="input-dark" placeholder="Nome Completo" onblur="validarCampo('nome')">
+                <p id="msg-nome" class="msg-error">Digite seu nome completo.</p>
+            </div>
+            
+            <div>
+                <input type="text" id="cad-cpf" class="input-dark" placeholder="CPF (000.000.000-00)" onblur="validarCampo('cpf')">
+                <p id="msg-cpf" class="msg-error">CPF inválido.</p>
+                <p id="ok-cpf" class="msg-success">CPF Válido <i class="fas fa-check"></i></p>
+            </div>
+            
             <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="cad-nasc" class="input-dark text-center" placeholder="Nascimento" onblur="calcularIdade()">
+                <div>
+                    <input type="text" id="cad-nasc" class="input-dark text-center" placeholder="Nascimento" onblur="calcularIdade()">
+                    <p id="msg-nasc" class="msg-error">Data Inválida.</p>
+                </div>
                 <input type="text" id="cad-idade" class="input-dark text-center input-readonly" placeholder="Idade" readonly>
             </div>
-            <!-- Sexo -->
+            
             <select id="cad-sexo" class="input-dark">
                 <option value="" disabled selected>Sexo</option>
                 <option value="Masculino">Masculino</option>
                 <option value="Feminino">Feminino</option>
             </select>
-            <input type="text" id="cad-zap" class="input-dark" placeholder="WhatsApp (DDD + Número)">
+            
+            <div>
+                <input type="text" id="cad-zap" class="input-dark" placeholder="WhatsApp (84 9...)" onblur="validarCampo('zap')">
+                <p id="msg-zap" class="msg-error">Número inválido (Use DDD+9+Numero).</p>
+                <p id="ok-zap" class="msg-success">WhatsApp OK <i class="fas fa-check"></i></p>
+            </div>
             
             <!-- Foto Doc -->
             <div class="border border-dashed border-gray-600 rounded-lg p-4 text-center mt-2">
@@ -115,6 +145,7 @@
             <div class="relative">
                 <input type="text" id="cad-cep" class="input-dark" placeholder="CEP" onblur="buscarCep()">
                 <i class="fas fa-search absolute right-3 top-3.5 text-gray-400"></i>
+                <p id="msg-cep" class="msg-error">CEP não encontrado.</p>
             </div>
             <input type="text" id="cad-rua" class="input-dark input-readonly" placeholder="Rua (Automático)" readonly>
             <div class="grid grid-cols-3 gap-3">
@@ -133,7 +164,10 @@
             <input type="text" id="emer-nome" class="input-dark" placeholder="Nome do Contato">
             <div class="grid grid-cols-2 gap-3">
                 <input type="text" id="emer-parentesco" class="input-dark" placeholder="Parentesco (Ex: Mãe)">
-                <input type="text" id="emer-zap" class="input-dark" placeholder="WhatsApp Contato">
+                <div>
+                    <input type="text" id="emer-zap" class="input-dark" placeholder="WhatsApp Contato" onblur="validarCampo('emer-zap')">
+                    <p id="msg-emer-zap" class="msg-error">Tel inválido.</p>
+                </div>
             </div>
         </div>
 
@@ -141,7 +175,11 @@
         <p class="section-title">Informações da Moto</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="moto-placa" class="input-dark uppercase font-bold text-center" placeholder="Placa">
+                <div>
+                    <input type="text" id="moto-placa" class="input-dark uppercase font-bold text-center" placeholder="Placa" onblur="validarCampo('placa')">
+                    <p id="msg-placa" class="msg-error">Placa inválida.</p>
+                    <p id="ok-placa" class="msg-success">Placa OK <i class="fas fa-check"></i></p>
+                </div>
                 <input type="text" id="moto-modelo" class="input-dark" placeholder="Modelo (Ex: Fan 160)">
             </div>
             <input type="text" id="moto-cor" class="input-dark" placeholder="Cor da Moto">
@@ -168,8 +206,14 @@
         <!-- DADOS LOGIN -->
         <p class="section-title mt-6">Criar Login</p>
         <div class="space-y-3">
-            <input type="email" id="cad-email" class="input-dark" placeholder="Seu melhor E-mail">
-            <input type="password" id="cad-senha" class="input-dark" placeholder="Crie uma Senha (Mín. 6 dígitos)">
+            <div>
+                <input type="email" id="cad-email" class="input-dark" placeholder="Seu melhor E-mail" onblur="validarCampo('email')">
+                <p id="msg-email" class="msg-error">E-mail inválido.</p>
+            </div>
+            <div>
+                <input type="password" id="cad-senha" class="input-dark" placeholder="Crie uma Senha (Mín. 6 dígitos)" onblur="validarCampo('senha')">
+                <p id="msg-senha" class="msg-error">Mínimo 6 caracteres.</p>
+            </div>
         </div>
 
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
@@ -178,12 +222,12 @@
 
     <!-- TELA 3: FEED (PLACEHOLDER) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
-        <h1 class="text-2xl font-bold text-white">Bem-vindo, Parceiro!</h1>
-        <p class="text-gray-400 mt-2">Você está logado.</p>
+        <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
+        <p class="text-gray-400 mt-2">Seu cadastro foi recebido.</p>
         <div class="mt-10 p-4 bg-gray-800 rounded-xl">
             <p class="text-sm text-yellow-500">Aguardando aprovação da central.</p>
         </div>
-        <button onclick="fazerLogout()" class="mt-8 text-gray-500 underline text-sm">Sair da conta</button>
+        <button onclick="sbClient.auth.signOut(); location.reload()" class="mt-8 text-gray-500 underline text-sm">Sair da conta</button>
     </div>
 
     <script>
@@ -204,24 +248,93 @@
             ['welcome', 'cadastro', 'feed'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
             document.getElementById('screen-'+id).classList.remove('hidden');
         }
-                // 1. Calcular Idade
+
+        // --- SISTEMA DE VALIDAÇÃO VISUAL ---
+        function mostrarErro(id, mostrar) {
+            const input = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById(id);
+            const msgErro = document.getElementById('msg-' + id);
+            const msgOk = document.getElementById('ok-' + id);
+            
+            if (mostrar) {
+                input.classList.add('input-error');
+                input.classList.remove('input-success');
+                if(msgErro) msgErro.style.display = 'block';
+                if(msgOk) msgOk.style.display = 'none';
+            } else {
+                input.classList.remove('input-error');
+                input.classList.add('input-success');
+                if(msgErro) msgErro.style.display = 'none';
+                if(msgOk) msgOk.style.display = 'block';
+            }
+        }
+
+        function validarCampo(tipo) {
+            if(tipo === 'cpf') {
+                const cpf = document.getElementById('cad-cpf').value;
+                mostrarErro('cpf', !validarCPF(cpf));
+            }
+            if(tipo === 'zap') {
+                const zap = document.getElementById('cad-zap').value.replace(/\D/g, '');
+                // 11 digitos e começa com 9 no 3o digito (DDD + 9)
+                const valido = zap.length === 11 && zap[2] === '9';
+                mostrarErro('zap', !valido);
+            }
+            if(tipo === 'placa') {
+                const placa = document.getElementById('moto-placa').value;
+                mostrarErro('placa', !validarPlaca(placa));
+            }
+            if(tipo === 'email') {
+                const email = document.getElementById('cad-email').value;
+                const valido = /\S+@\S+\.\S+/.test(email);
+                mostrarErro('email', !valido);
+            }
+            if(tipo === 'senha') {
+                const senha = document.getElementById('cad-senha').value;
+                mostrarErro('senha', senha.length < 6);
+            }
+            if(tipo === 'nome') {
+                const nome = document.getElementById('cad-nome').value;
+                mostrarErro('nome', nome.length < 5);
+            }
+        }
+
+        // 1. Calcular Idade
         function calcularIdade() {
             const dataStr = document.getElementById('cad-nasc').value;
+            const msgErro = document.getElementById('msg-nasc');
             if (dataStr.length !== 10) return;
+            
             const partes = dataStr.split('/');
             const nascimento = new Date(partes[2], partes[1] - 1, partes[0]);
             const hoje = new Date();
             let idade = hoje.getFullYear() - nascimento.getFullYear();
             const m = hoje.getMonth() - nascimento.getMonth();
             if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
-            document.getElementById('cad-idade').value = idade > 0 ? idade : '';
-            if(idade < 18) alert("É necessário ser maior de 18 anos.");
+            
+            if(isNaN(idade) || idade < 0) {
+                document.getElementById('cad-nasc').classList.add('input-error');
+                msgErro.style.display = 'block';
+                document.getElementById('cad-idade').value = '';
+            } else {
+                document.getElementById('cad-nasc').classList.remove('input-error');
+                document.getElementById('cad-nasc').classList.add('input-success');
+                msgErro.style.display = 'none';
+                document.getElementById('cad-idade').value = idade;
+                if(idade < 18) alert("É necessário ser maior de 18 anos.");
+            }
         }
 
         // 2. Buscar CEP
         async function buscarCep() {
-            let cep = document.getElementById('cad-cep').value.replace(/\D/g, '');
-            if (cep.length !== 8) return;
+            let cepInput = document.getElementById('cad-cep');
+            let cep = cepInput.value.replace(/\D/g, '');
+            let msgErro = document.getElementById('msg-cep');
+
+            if (cep.length !== 8) {
+                cepInput.classList.add('input-error');
+                return; 
+            }
+
             try {
                 const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                 const data = await res.json();
@@ -230,11 +343,19 @@
                     document.getElementById('cad-bairro').value = data.bairro;
                     document.getElementById('cad-cidade').value = `${data.localidade}/${data.uf}`;
                     document.getElementById('cad-num').focus();
+                    cepInput.classList.remove('input-error');
+                    cepInput.classList.add('input-success');
+                    if(msgErro) msgErro.style.display = 'none';
+                } else {
+                    cepInput.classList.add('input-error');
+                    if(msgErro) msgErro.style.display = 'block';
                 }
-            } catch (e) {}
+            } catch (e) {
+                cepInput.classList.add('input-error');
+            }
         }
 
-        // 3. Validação CPF
+        // 3. Validação CPF (Matemática)
         function validarCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, '');
             if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -274,65 +395,65 @@
             const integral = document.getElementById('check-integral');
             if (isRenda) integral.checked = false;
         }
-                // --- ENVIAR CADASTRO (FIX) ---
-        async function enviarCadastro() {
-            console.log("Iniciando cadastro..."); // Debug
 
+        // --- ENVIAR CADASTRO (COM TRATAMENTO DE ERRO) ---
+        async function enviarCadastro() {
+            console.log("Clicou cadastrar...");
+            
+            // Coleta Dados
             const nome = document.getElementById('cad-nome').value;
             const cpf = document.getElementById('cad-cpf').value;
             const zap = document.getElementById('cad-zap').value;
             const placa = document.getElementById('cad-placa').value;
+            const modelo = document.getElementById('cad-modelo').value;
+            const cor = document.getElementById('cad-cor').value;
             const email = document.getElementById('cad-email').value;
             const senha = document.getElementById('cad-senha').value;
-            const btn = document.getElementById('btn-cadastrar'); // ID Corrigido
+            const btn = document.getElementById('btn-cadastrar');
+
+            // 1. Verifica Campos Vazios
+            if (!nome || !cpf || !zap || !placa || !email || !senha || !modelo) {
+                alert("Preencha todos os campos obrigatórios!");
+                // Destaca campos vazios
+                if(!nome) mostrarErro('nome', true);
+                if(!email) mostrarErro('email', true);
+                return;
+            }
+
+            // 2. Verifica Validações Técnicas
+            if (!validarCPF(cpf)) return alert("CPF Inválido! Corrija para continuar.");
+            if (!validarPlaca(placa)) return alert("Placa Inválida!");
+            if (senha.length < 6) return alert("Senha muito curta.");
+
+            btn.innerText = "Enviando..."; btn.disabled = true;
 
             // Coleta checkboxes
             let disp = []; document.querySelectorAll('input[name="disp"]:checked').forEach(c => disp.push(c.value));
             if(document.getElementById('check-integral').checked) disp.push('Integral');
-            if(document.getElementById('check-renda').checked) disp.push('Renda Extra');
 
-            // Validações
-            if (!nome || !cpf || !zap || !placa || !email || !senha) return alert("Preencha todos os campos obrigatórios.");
-            if (!validarCPF(cpf)) return alert("CPF Inválido.");
-            if (!validarPlaca(placa)) return alert("Placa Inválida (Padrão Antigo ou Mercosul).");
-            if (senha.length < 6) return alert("Senha deve ter no mínimo 6 dígitos.");
-
-            // Verifica fotos
-            const docFile = document.getElementById('cad-foto-doc').files.length;
-            const crlvFile = document.getElementById('cad-foto-crlv').files.length;
-            if (docFile === 0 || crlvFile === 0) return alert("É obrigatório enviar as fotos dos documentos.");
-
-            btn.innerText = "Enviando..."; btn.disabled = true;
-
-            // Metadados para o Gatilho do Banco
+            // Objeto de Dados
             const metaData = {
-                tipo_usuario: 'motoboy', // Gatilho usa isso para salvar na tabela certa
-                nome: nome,
-                cpf: cpf,
-                whatsapp: zap,
-                placa: placa,
-                modelo: document.getElementById('moto-modelo').value,
-                cor: document.getElementById('moto-cor').value,
-                disponibilidade: disp.join(', ')
+                tipo_usuario: 'motoboy',
+                nome: nome, cpf: cpf, whatsapp: zap, placa: placa,
+                modelo: modelo, cor: cor, disponibilidade: disp.join(', ')
             };
 
             try {
+                // Tenta criar usuário no Auth (Isso dispara o Trigger no banco)
                 const { data, error } = await sbClient.auth.signUp({
-                    email: email,
-                    password: senha,
+                    email: email, password: senha,
                     options: { data: metaData }
                 });
 
                 if (error) throw error;
 
-                alert("Cadastro realizado! Aguarde a aprovação da central.");
-                // Opcional: Subir fotos para Storage do Supabase (Avançado)
-                // Por enquanto, cadastro criado com sucesso.
-                location.reload();
+                alert("Cadastro realizado! Aguarde aprovação.");
+                window.location.reload();
 
             } catch (e) {
+                console.error(e);
                 alert("Erro ao cadastrar: " + e.message);
-                btn.innerText = "ENVIAR CADASTRO"; btn.disabled = false;
+                btn.innerText = "TENTAR NOVAMENTE"; btn.disabled = false;
             }
         }
 
@@ -345,12 +466,14 @@
 
             const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
             
-            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; }
-            else { location.reload(); }
+            if (error) { 
+                alert("Login falhou: " + error.message); 
+                btn.innerText = "ENTRAR"; btn.disabled = false; 
+            }
+            else { 
+                location.reload(); 
+            }
         }
-
-        function fazerLogout() { sbClient.auth.signOut(); location.reload(); }
-
     </script>
 </body>
 </html>
