@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Parceiro Drop</title>
+    <!-- Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -11,299 +12,434 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* Tema Escuro para Motoboys (Economia de Bateria/Noturno) */
+        /* TEMA ESCURO (Dark Mode para Motoboys - Economia de Bateria) */
         body { font-family: 'Segoe UI', sans-serif; background-color: #111827; color: #e5e7eb; padding-bottom: 90px; }
+        
         .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
+        /* Botões */
         .btn-action { background-color: #FBBF24; color: black; font-weight: bold; transition: all 0.2s; }
-        .btn-action:active { transform: scale(0.95); }
+        .btn-action:hover { background-color: #F59E0B; transform: scale(1.02); }
+        .btn-action:active { transform: scale(0.98); }
         
-        .card-pedido { background-color: #1F2937; border: 1px solid #374151; border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
-        .badge-valor { background-color: #059669; color: white; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; position: absolute; top: 16px; right: 16px; }
+        /* Cards */
+        .card-dark { background-color: #1F2937; border: 1px solid #374151; border-radius: 12px; }
+        .input-dark { background-color: #111827; border: 1px solid #374151; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; }
+        .input-dark:focus { border-color: #FBBF24; }
+        
+        /* Mural de Pedidos */
+        .order-card { background-color: #1F2937; border-left: 4px solid #FBBF24; padding: 15px; margin-bottom: 12px; border-radius: 8px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .badge-valor { position: absolute; top: 10px; right: 10px; background: #059669; color: white; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+
+        /* Menu Inferior */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1F2937; border-top: 1px solid #374151; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; max-width: 28rem; margin: 0 auto; }
+        @media (min-width: 768px) { .bottom-nav { border-radius: 0 0 1.5rem 1.5rem; } }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #9CA3AF; flex: 1; cursor: pointer; }
+        .nav-item.active { color: #FBBF24; font-weight: bold; }
+        .nav-item i { font-size: 22px; margin-bottom: 4px; }
+
+        /* Container Responsivo */
+        .app-container { width: 100%; min-height: 100vh; padding-bottom: 80px; }
+        @media (min-width: 768px) { 
+            .app-container { max-width: 28rem; margin: 0 auto; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: #111827; position: relative; height: 90vh; overflow-y: auto; } 
+            body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #000; } 
+        }
 
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-left-color: #FBBF24; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1F2937; border-top: 1px solid #374151; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #9CA3AF; }
-        .nav-item.active { color: #FBBF24; }
-        .nav-item i { font-size: 22px; margin-bottom: 4px; }
-        
-        .app-container { width: 100%; min-height: 100vh; padding-bottom: 80px; }
-        @media (min-width: 768px) { .app-container { max-width: 28rem; margin: 0 auto; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); } body { display: flex; align-items: center; justify-content: center; } .bottom-nav { max-width: 28rem; margin: 0 auto; border-radius: 0 0 1.5rem 1.5rem; } }
     </style>
 </head>
 <body>
 
-    <!-- CONFIGURAÇÃO -->
+    <!-- LOADING INICIAL -->
+    <div id="global-loading" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[100]">
+        <div class="spinner w-10 h-10 border-4 mb-4"></div>
+        <p class="text-gray-400 text-sm font-bold">Carregando Parceiro...</p>
+    </div>
+
     <script>
-        const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU';
+        // --- CHAVES DO SISTEMA ---
+        const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim(); 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
         
         let sbClient = null;
         try { sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.error(e); }
 
         let userSession = null;
-        let corridaAtiva = null;
+        let userProfile = null;
+        let corridaAtual = null;
 
+        // INICIALIZAÇÃO
         window.onload = async function() {
-            const { data: { session } } = await sbClient.auth.getSession();
-            if (session) {
-                userSession = session;
-                // Verifica se já tem corrida em andamento
-                verificarCorridaAtiva();
-            } else {
-                showScreen('login');
+            const globalLoad = document.getElementById('global-loading');
+            try {
+                if(!sbClient) throw new Error("Erro DB");
+                const { data: { session } } = await sbClient.auth.getSession();
+                if (session) {
+                    userSession = session;
+                    await carregarPerfil();
+                    // Verifica se já tem corrida
+                    await verificarStatus();
+                } else {
+                    showScreen('welcome');
+                }
+            } catch(e) {
+                console.error(e);
+                showScreen('welcome');
+            } finally {
+                if(globalLoad) globalLoad.style.display = 'none';
             }
         };
     </script>
 
-    <!-- TELA 1: LOGIN -->
-    <div id="screen-login" class="app-container p-8 flex flex-col justify-center text-center fade-in">
+    <!-- TELA 1: LOGIN/BOAS-VINDAS -->
+    <div id="screen-welcome" class="hidden app-container p-8 flex flex-col justify-center text-center fade-in">
         <div class="mb-8">
-            <div class="inline-block p-4 rounded-full bg-yellow-500 text-black mb-4"><i class="fas fa-motorcycle text-4xl"></i></div>
-            <h1 class="text-3xl font-bold text-white mb-1">Parceiro Drop</h1>
+            <div class="inline-block p-4 rounded-full bg-yellow-500 text-black mb-4 shadow-lg shadow-yellow-500/20">
+                <i class="fas fa-motorcycle text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-1">Parceiro <span class="text-yellow-400">Drop</span></h1>
             <p class="text-gray-400 text-sm">App exclusivo para entregadores.</p>
         </div>
-        <div class="space-y-4">
-            <input type="email" id="log-email" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white outline-none focus:border-yellow-500" placeholder="E-mail">
-            <input type="password" id="log-senha" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white outline-none focus:border-yellow-500" placeholder="Senha">
+        
+        <!-- Formulário Login -->
+        <div id="form-login" class="space-y-4 w-full">
+            <input type="email" id="log-email" class="input-dark text-center" placeholder="Seu E-mail">
+            <input type="password" id="log-senha" class="input-dark text-center" placeholder="Sua Senha">
             <button onclick="fazerLogin()" id="btn-login" class="w-full btn-action py-4 rounded-xl shadow-lg">ENTRAR</button>
-            <button onclick="alert('Cadastro de motoboy deve ser feito pelo suporte.')" class="text-gray-500 text-sm mt-4 underline">Quero me cadastrar</button>
+            <div class="flex justify-between text-xs text-gray-500 px-2">
+                <span onclick="toggleCadastro()" class="cursor-pointer hover:text-white">Criar conta</span>
+                <span onclick="alert('Fale com o suporte')" class="cursor-pointer hover:text-white">Esqueci a senha</span>
+            </div>
+        </div>
+
+        <!-- Formulário Cadastro (Oculto) -->
+        <div id="form-cadastro" class="hidden space-y-3 w-full text-left">
+            <h3 class="text-white font-bold text-center mb-2">Novo Cadastro</h3>
+            <input type="text" id="cad-nome" class="input-dark" placeholder="Nome Completo">
+            <input type="text" id="cad-cpf" class="input-dark" placeholder="CPF">
+            <input type="text" id="cad-zap" class="input-dark" placeholder="WhatsApp">
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="cad-placa" class="input-dark uppercase" placeholder="Placa">
+                <input type="text" id="cad-modelo" class="input-dark" placeholder="Modelo Moto">
+            </div>
+            <input type="email" id="cad-email" class="input-dark" placeholder="E-mail (Login)">
+            <input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Mín 6)">
+            
+            <button onclick="fazerCadastro()" id="btn-cad" class="w-full btn-action py-3 rounded-xl mt-2">CADASTRAR AGORA</button>
+            <p onclick="toggleCadastro()" class="text-center text-xs text-gray-400 mt-3 cursor-pointer underline">Voltar para Login</p>
         </div>
     </div>
 
-    <!-- TELA 2: MURAL DE PEDIDOS -->
+    <!-- TELA 2: MURAL (FEED) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in">
-        <div class="flex justify-between items-center mb-6 pt-4">
-            <h1 class="text-xl font-bold text-white">Disponíveis <span class="text-yellow-500">• Online</span></h1>
-            <button onclick="fazerLogout()" class="text-xs text-gray-500 border border-gray-700 px-3 py-1 rounded-full">Sair</button>
+        <div class="flex justify-between items-center mb-6 pt-2">
+            <div>
+                <h1 class="text-lg font-bold text-white">Olá, <span id="moto-name" class="text-yellow-400">...</span></h1>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <p class="text-xs text-gray-400">Disponível para corridas</p>
+                </div>
+            </div>
+            <button onclick="fazerLogout()" class="text-xs text-gray-500 border border-gray-700 px-3 py-1 rounded-full hover:text-white hover:border-white transition"><i class="fas fa-power-off"></i></button>
         </div>
 
-        <div id="lista-pedidos-feed" class="space-y-4">
-            <p class="text-center text-gray-500 mt-10"><i class="fas fa-spinner fa-spin"></i> Buscando corridas...</p>
+        <h2 class="text-xs font-bold text-gray-500 uppercase mb-3">Mural de Pedidos</h2>
+        <div id="lista-pedidos" class="space-y-3 pb-20">
+            <!-- Os pedidos entram aqui via JS -->
+            <div class="text-center mt-20 opacity-50">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2 text-yellow-500"></i>
+                <p>Buscando pedidos...</p>
+            </div>
         </div>
     </div>
 
-    <!-- TELA 3: CORRIDA EM ANDAMENTO -->
+    <!-- TELA 3: CORRIDA ATIVA -->
     <div id="screen-active" class="hidden app-container p-4 fade-in bg-gray-900">
         <div class="text-center mb-6 pt-6">
-            <div class="inline-block bg-green-500/20 text-green-400 px-4 py-1 rounded-full text-xs font-bold mb-2 animate-pulse">EM ANDAMENTO</div>
-            <h2 class="text-2xl font-bold text-white" id="active-valor">R$ 0,00</h2>
-            <p class="text-gray-400 text-sm">Valor da Corrida</p>
+            <div class="inline-block bg-green-500/20 text-green-400 px-4 py-1 rounded-full text-xs font-bold mb-2 animate-pulse">EM ROTA</div>
+            <h2 class="text-3xl font-bold text-white" id="active-valor">R$ 0,00</h2>
+            <p class="text-gray-400 text-xs mt-1" id="active-pagamento">Forma de Pagamento</p>
         </div>
 
-        <div class="bg-gray-800 rounded-2xl p-5 mb-4 border border-gray-700">
-            <div class="mb-4">
-                <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">RETIRADA (LOJA)</p>
+        <!-- Card Loja -->
+        <div class="card-dark p-4 mb-3 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1 ml-2">1. RETIRADA (LOJA)</p>
+            <div class="ml-2">
                 <p class="text-white font-bold text-lg" id="active-loja">...</p>
                 <p class="text-gray-400 text-sm" id="active-origem">...</p>
+                <a id="btn-mapa-loja" href="#" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-map-marked-alt"></i> Abrir GPS</a>
             </div>
-            <div class="border-t border-gray-700 my-4"></div>
-            <div class="mb-4">
-                <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">ENTREGA (CLIENTE)</p>
-                <p class="text-white font-bold" id="active-destino">...</p>
-                <div class="mt-2 flex gap-2">
-                    <p class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded" id="active-cliente">...</p>
-                    <a id="btn-zap-cliente" href="#" target="_blank" class="text-xs bg-green-600 text-white px-2 py-1 rounded flex items-center gap-1"><i class="fab fa-whatsapp"></i> Chamar</a>
+        </div>
+
+        <!-- Card Cliente -->
+        <div class="card-dark p-4 mb-6 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1 ml-2">2. ENTREGA (CLIENTE)</p>
+            <div class="ml-2">
+                <p class="text-white font-bold text-lg" id="active-cliente">...</p>
+                <p class="text-gray-400 text-sm mb-1" id="active-destino">...</p>
+                <p class="text-gray-500 text-xs italic" id="active-obs">...</p>
+                
+                <div class="flex gap-2 mt-3">
+                    <a id="btn-mapa-cli" href="#" target="_blank" class="flex-1 bg-gray-700 text-white text-center py-2 rounded-lg text-xs font-bold"><i class="fas fa-location-arrow"></i> GPS</a>
+                    <a id="btn-zap-cli" href="#" target="_blank" class="flex-1 bg-green-600 text-white text-center py-2 rounded-lg text-xs font-bold"><i class="fab fa-whatsapp"></i> ZAP</a>
                 </div>
             </div>
         </div>
 
-        <div class="bg-gray-800 rounded-2xl p-5 border border-gray-700">
-            <p class="text-xs text-gray-400 text-center mb-3">Solicite o PIN ao cliente para finalizar</p>
+        <!-- Finalizar -->
+        <div class="card-dark p-5 border-yellow-500/30 border">
+            <p class="text-xs text-gray-300 text-center mb-3">Peça o PIN (Código) ao cliente:</p>
             <div class="flex gap-2">
-                <input type="number" id="input-pin" class="flex-1 bg-gray-900 border border-gray-600 text-white text-center text-xl font-mono rounded-xl p-3 outline-none focus:border-yellow-500" placeholder="PIN (4 dig)">
-                <button onclick="finalizarCorrida()" class="bg-green-600 text-white font-bold px-6 rounded-xl hover:bg-green-500">OK</button>
+                <input type="tel" id="input-pin" class="flex-1 bg-black border border-gray-600 text-white text-center text-2xl font-mono rounded-xl p-3 outline-none focus:border-yellow-500 tracking-widest" placeholder="0000" maxlength="4">
+                <button onclick="finalizarCorrida()" id="btn-finalizar" class="bg-yellow-500 text-black font-bold px-6 rounded-xl hover:bg-yellow-400">OK</button>
             </div>
         </div>
         
-        <button onclick="cancelarCorrida()" class="w-full mt-6 text-red-500 text-xs underline">Cancelar Corrida (Emergência)</button>
+        <button onclick="cancelarCorrida()" class="w-full mt-8 text-red-500 text-xs underline opacity-50 hover:opacity-100">Cancelar Corrida (Emergência)</button>
     </div>
 
-    <!-- MENU -->
-    <div id="bottom-menu" class="hidden bottom-nav max-w-md">
-        <div class="nav-item active" onclick="showScreen('feed')"><i class="fas fa-list-ul"></i><span>Mural</span></div>
-        <div class="nav-item" onclick="verificarCorridaAtiva()"><i class="fas fa-motorcycle"></i><span>Em Rota</span></div>
-        <div class="nav-item"><i class="fas fa-wallet"></i><span>Ganhos</span></div>
+    <!-- TELA 4: EXTRATO -->
+    <div id="screen-extract" class="hidden app-container p-4 fade-in">
+        <h2 class="text-xl font-bold text-white mb-4">Meus Ganhos</h2>
+        <div class="card-dark p-6 text-center mb-6">
+            <p class="text-gray-400 text-xs uppercase tracking-widest">Saldo Disponível</p>
+            <p class="text-4xl font-bold text-green-400 mt-2" id="saldo-total">R$ 0,00</p>
+        </div>
+        <h3 class="text-sm font-bold text-gray-500 mb-2 uppercase">Últimas Corridas</h3>
+        <div id="lista-historico" class="space-y-2 pb-20"></div>
+    </div>
+
+    <!-- MENU INFERIOR -->
+    <div id="bottom-menu" class="hidden bottom-nav">
+        <div class="nav-item active" onclick="navegar('feed', this); atualizarFeed()"><i class="fas fa-home"></i><span>Mural</span></div>
+        <div class="nav-item" onclick="navegar('active', this); verificarStatus()"><i class="fas fa-motorcycle"></i><span>Rota</span></div>
+        <div class="nav-item" onclick="navegar('extract', this); carregarExtrato()"><i class="fas fa-wallet"></i><span>Ganhos</span></div>
     </div>
 
     <script>
+        $(document).ready(function(){ 
+            $('#cad-cpf').mask('000.000.000-00'); $('#cad-zap').mask('(00) 00000-0000'); 
+            $('#cad-placa').on('input', function() { $(this).val($(this).val().toUpperCase()); });
+        });
+
+        // --- SISTEMA DE TELAS ---
+        function showScreen(id) {
+            ['welcome', 'feed', 'active', 'extract'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
+            document.getElementById('screen-'+id).classList.remove('hidden');
+
+            if(id === 'welcome') document.getElementById('bottom-menu').classList.add('hidden');
+            else {
+                document.getElementById('bottom-menu').classList.remove('hidden');
+                document.getElementById('bottom-menu').classList.add('flex');
+            }
+        }
+        function navegar(tela, el) { showScreen(tela); document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); el.classList.add('active'); }
+        function toggleCadastro() { document.getElementById('form-login').classList.toggle('hidden'); document.getElementById('form-cadastro').classList.toggle('hidden'); }
+
         // --- AUTH ---
+        async function fazerCadastro() {
+            const email = document.getElementById('cad-email').value; const senha = document.getElementById('cad-senha').value;
+            const nome = document.getElementById('cad-nome').value; const cpf = document.getElementById('cad-cpf').value;
+            const zap = document.getElementById('cad-zap').value; const placa = document.getElementById('cad-placa').value;
+            const modelo = document.getElementById('cad-modelo').value;
+            const btn = document.getElementById('btn-cad');
+
+            if(!email || !senha || !nome || !cpf) return alert("Preencha todos os campos.");
+            btn.innerText = "Criando..."; btn.disabled = true;
+
+            try {
+                // Cadastra e usa o Trigger do Banco para criar na tabela 'motoboys'
+                const { data, error } = await sbClient.auth.signUp({
+                    email: email, password: senha,
+                    options: { data: { tipo_usuario: 'motoboy', nome: nome, cpf: cpf, whatsapp: zap, placa: placa, modelo: modelo } }
+                });
+                if(error) throw error;
+                alert("Cadastro realizado! Entre com seu e-mail e senha.");
+                location.reload();
+            } catch(e) { alert("Erro: " + e.message); btn.innerText = "CADASTRAR"; btn.disabled = false; }
+        }
+
         async function fazerLogin() {
-            const email = document.getElementById('log-email').value;
-            const senha = document.getElementById('log-senha').value;
+            const email = document.getElementById('log-email').value; const senha = document.getElementById('log-senha').value;
             const btn = document.getElementById('btn-login');
 
+            if(!email || !senha) return alert("Digite e-mail e senha.");
             btn.innerText = "Entrando..."; btn.disabled = true;
 
-            const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-
-            if (error) {
-                alert("Erro: " + error.message);
-                btn.innerText = "ENTRAR"; btn.disabled = false;
-            } else {
+            try {
+                const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+                if(error) throw error;
                 userSession = data.session;
-                verificarCorridaAtiva();
-            }
+                await carregarPerfil();
+                verificarStatus();
+            } catch(e) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; }
         }
 
+        async function carregarPerfil() {
+            const { data } = await sbClient.from('motoboys').select('*').eq('id', userSession.user.id).single();
+            if(data) {
+                userProfile = data;
+                document.getElementById('moto-name').innerText = data.nome.split(' ')[0];
+            }
+        }
         function fazerLogout() { sbClient.auth.signOut(); location.reload(); }
 
-        // --- SISTEMA DE PEDIDOS ---
+        // --- LÓGICA DE PEDIDOS ---
         
-        // 1. Verificar se já tem corrida aceita
-        async function verificarCorridaAtiva() {
-            if(!userSession) return;
-
-            const { data, error } = await sbClient
-                .from('pedidos')
-                .select('*')
-                .eq('motoboy_id', userSession.user.id)
-                .eq('status', 'Em Rota')
-                .single();
-
-            if (data) {
-                carregarTelaAtiva(data);
+        // 1. VERIFICA SE TEM CORRIDA ATIVA
+        async function verificarStatus() {
+            const { data } = await sbClient.from('pedidos').select('*').eq('motoboy_id', userSession.user.id).eq('status', 'Em Rota').single();
+            if(data) {
+                corridaAtual = data;
+                montarTelaAtiva(data);
+                showScreen('active');
             } else {
-                carregarFeed();
+                atualizarFeed();
+                showScreen('feed');
             }
         }
 
-        // 2. Carregar Mural (Feed)
-        async function carregarFeed() {
-            showScreen('feed');
-            const lista = document.getElementById('lista-pedidos-feed');
-            lista.innerHTML = '<div class="text-center mt-10"><div class="spinner mx-auto mb-2"></div><p class="text-gray-500 text-xs">Buscando pedidos...</p></div>';
-
-            const { data, error } = await sbClient
-                .from('pedidos')
-                .select('*')
-                .eq('status', 'Solicitado') // Só mostra os disponíveis
-                .order('created_at', { ascending: false });
-
-            lista.innerHTML = '';
-
-            if (!data || data.length === 0) {
-                lista.innerHTML = '<div class="text-center mt-20 opacity-50"><i class="fas fa-box-open text-4xl mb-2"></i><p>Nenhuma corrida disponível agora.</p></div>';
+        // 2. MURAL (FEED)
+        async function atualizarFeed() {
+            const div = document.getElementById('lista-pedidos');
+            // Busca apenas 'Solicitado'
+            const { data, error } = await sbClient.from('pedidos').select('*').eq('status', 'Solicitado').order('created_at', { ascending: false });
+            
+            div.innerHTML = '';
+            if(!data || data.length === 0) {
+                div.innerHTML = '<div class="text-center mt-20 opacity-50"><i class="fas fa-box-open text-4xl mb-2 text-gray-600"></i><p>Nenhuma corrida disponível.</p></div>';
                 return;
             }
 
             data.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'card-pedido';
-                div.innerHTML = `
+                const card = document.createElement('div');
+                card.className = 'order-card fade-in';
+                card.innerHTML = `
                     <div class="badge-valor">R$ ${p.valor_frete}</div>
-                    <div class="pr-16">
-                        <p class="text-xs text-gray-400 font-bold mb-1">RETIRADA</p>
-                        <p class="text-white font-bold text-sm mb-3 truncate"><i class="fas fa-store text-yellow-500 mr-1"></i> ${p.origem}</p>
-                        
-                        <p class="text-xs text-gray-400 font-bold mb-1">ENTREGA</p>
-                        <p class="text-white text-sm truncate"><i class="fas fa-map-marker-alt text-red-500 mr-1"></i> ${p.destino}</p>
-                        
-                        <div class="mt-3 flex items-center justify-between">
-                            <span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">${p.forma_pagamento}</span>
-                        </div>
-                    </div>
-                    <button onclick="aceitarCorrida(${p.id})" class="w-full mt-4 bg-yellow-500 text-black font-bold py-2 rounded-lg hover:bg-yellow-400 transition">ACEITAR CORRIDA</button>
+                    <p class="text-xs text-gray-400 font-bold mb-1">RETIRADA</p>
+                    <p class="text-white font-bold text-sm mb-3 truncate"><i class="fas fa-store text-yellow-500 mr-1"></i> ${p.origem}</p>
+                    <p class="text-xs text-gray-400 font-bold mb-1">ENTREGA</p>
+                    <p class="text-white text-sm truncate mb-3"><i class="fas fa-map-marker-alt text-red-500 mr-1"></i> ${p.destino}</p>
+                    <button onclick="aceitarCorrida(${p.id})" class="w-full bg-yellow-500 text-black font-bold py-2 rounded-lg hover:bg-yellow-400 transition">ACEITAR CORRIDA</button>
                 `;
-                lista.appendChild(div);
+                div.appendChild(card);
             });
-
-            // ATIVAR REALTIME (Atualiza sozinho)
-            const channel = sbClient
-                .channel('public:pedidos')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, payload => {
-                    carregarFeed(); // Recarrega a lista se algo mudar
-                })
-                .subscribe();
         }
 
-        // 3. Aceitar Corrida
-        async function aceitarCorrida(idPedido) {
-            if (!confirm("Confirmar aceite desta corrida?")) return;
+        // 3. ACEITAR
+        async function aceitarCorrida(id) {
+            const btn = event.target;
+            btn.innerText = "Pegando..."; btn.disabled = true;
 
-            // Tenta pegar o pedido para si
-            const { error } = await sbClient
-                .from('pedidos')
-                .update({ 
-                    status: 'Em Rota', 
-                    motoboy_id: userSession.user.id 
-                })
-                .eq('id', idPedido)
-                .eq('status', 'Solicitado'); // Garante que ninguém pegou antes
+            // Tenta atualizar o status para 'Em Rota' colocando seu ID
+            // A regra RLS garante que só consegue se ainda estiver 'Solicitado'
+            const { error } = await sbClient.from('pedidos').update({ status: 'Em Rota', motoboy_id: userSession.user.id }).eq('id', id).eq('status', 'Solicitado');
 
-            if (error) {
-                alert("Ops! Outro motoboy já pegou essa corrida.");
-                carregarFeed();
+            if(error) {
+                alert("Ops! Outro motoboy foi mais rápido.");
+                atualizarFeed();
             } else {
-                verificarCorridaAtiva(); // Vai para a tela de corrida
+                verificarStatus(); // Vai pra tela ativa
             }
         }
 
-        // 4. Tela de Corrida Ativa
-        function carregarTelaAtiva(pedido) {
-            corridaAtiva = pedido;
-            document.getElementById('active-valor').innerText = "R$ " + pedido.valor_frete;
-            document.getElementById('active-loja').innerText = pedido.nome_cliente || "Loja Parceira";
-            document.getElementById('active-origem').innerText = pedido.origem;
-            document.getElementById('active-destino').innerText = pedido.destino;
-            document.getElementById('active-cliente').innerText = pedido.nome_destinatario || "Cliente Final";
+           // 4. TELA ATIVA
+        function montarTelaAtiva(p) {
+            document.getElementById('active-valor').innerText = "R$ " + p.valor_frete;
+            document.getElementById('active-pagamento').innerText = "Pagamento: " + p.forma_pagamento;
             
-            // Link do Zap do Cliente
-            if(pedido.telefone_destinatario) {
-                const num = pedido.telefone_destinatario.replace(/\D/g, '');
-                document.getElementById('btn-zap-cliente').href = `https://wa.me/55${num}`;
-            }
+            // Loja (Pode vir de um join no futuro, aqui pegamos direto se tiver salvo no pedido ou usamos placeholder)
+            // No modelo atual, o nome da loja não está na tabela pedidos explicitamente, mas podemos pegar a 'origem'
+            // O ideal seria salvar 'nome_loja' no pedido também, mas vamos usar 'origem'
+            document.getElementById('active-loja').innerText = "Loja Parceira"; 
+            document.getElementById('active-origem').innerText = p.origem;
+            document.getElementById('btn-mapa-loja').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.origem + ', ' + CIDADE_FIXA)}`;
 
-            showScreen('active');
+            document.getElementById('active-cliente').innerText = p.nome_destinatario || "Cliente Final";
+            document.getElementById('active-destino').innerText = p.destino;
+            document.getElementById('active-obs').innerText = ""; // Se tiver obs
+            document.getElementById('btn-mapa-cli').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.destino + ', ' + CIDADE_FIXA)}`;
+            
+            if(p.telefone_destinatario) {
+                document.getElementById('btn-zap-cli').href = `https://wa.me/55${p.telefone_destinatario.replace(/\D/g,'')}`;
+            }
         }
 
-        // 5. Finalizar com PIN
+        // 5. FINALIZAR
         async function finalizarCorrida() {
-            const pinDigitado = document.getElementById('input-pin').value;
-            
-            if (pinDigitado !== corridaAtiva.pin_entrega) {
-                alert("PIN Incorreto! Peça o código ao cliente.");
+            const pin = document.getElementById('input-pin').value;
+            const btn = document.getElementById('btn-finalizar');
+
+            if(pin !== corridaAtual.pin_entrega) {
+                alert("PIN Incorreto! Peça ao cliente.");
                 return;
             }
 
-            const { error } = await sbClient
-                .from('pedidos')
-                .update({ status: 'Finalizado' })
-                .eq('id', corridaAtiva.id);
+            btn.innerText = "..."; btn.disabled = true;
 
-            if (error) {
-                alert("Erro ao finalizar.");
+            // Finaliza Pedido
+            const { error } = await sbClient.from('pedidos').update({ status: 'Finalizado' }).eq('id', corridaAtual.id);
+            
+            // Adiciona Saldo ao Motoboy
+            if(!error) {
+                // Atualiza saldo local e no banco (opcional se quiser controle duplo)
+                const novoSaldo = (parseFloat(userProfile.saldo || 0) + parseFloat(corridaAtual.valor_frete));
+                await sbClient.from('motoboys').update({ saldo: novoSaldo }).eq('id', userSession.user.id);
+                
+                alert(`Sucesso! + R$ ${corridaAtual.valor_frete} na conta.`);
+                location.reload();
             } else {
-                alert("Corrida Finalizada! Valor adicionado ao saldo.");
-                // Aqui entraria a lógica de adicionar saldo ao motoboy na tabela 'profiles' dele
-                document.getElementById('input-pin').value = "";
-                carregarFeed();
+                alert("Erro ao finalizar.");
+                btn.innerText = "OK"; btn.disabled = false;
             }
+        }
+
+        async function cancelarCorrida() {
+            if(!confirm("Deseja cancelar? Isso impacta sua reputação.")) return;
+            await sbClient.from('pedidos').update({ status: 'Solicitado', motoboy_id: null }).eq('id', corridaAtual.id);
+            location.reload();
+        }
+
+        // 6. EXTRATO
+        async function carregarExtrato() {
+            const div = document.getElementById('lista-historico');
+            div.innerHTML = '<p class="text-center text-gray-500 mt-4">Carregando...</p>';
+            
+            // Pega perfil atualizado para saldo
+            const { data: perfil } = await sbClient.from('motoboys').select('saldo').eq('id', userSession.user.id).single();
+            if(perfil) document.getElementById('saldo-total').innerText = "R$ " + perfil.saldo.toFixed(2);
+
+            // Pega histórico
+            const { data: historico } = await sbClient.from('pedidos').select('*').eq('motoboy_id', userSession.user.id).eq('status', 'Finalizado').order('created_at', { ascending: false }).limit(20);
+
+            div.innerHTML = '';
+            if(!historico || historico.length === 0) { div.innerHTML = '<p class="text-center text-gray-500 mt-4">Nenhuma corrida finalizada.</p>'; return; }
+
+            historico.forEach(h => {
+                const date = new Date(h.created_at).toLocaleDateString('pt-BR');
+                div.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg mb-2 border border-gray-700">
+                        <div>
+                            <p class="text-white text-sm font-bold">${h.destino}</p>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </div>
+                        <p class="text-green-400 font-bold">+ R$ ${h.valor_frete}</p>
+                    </div>
+                `;
+            });
         }
         
-        async function cancelarCorrida() {
-            if(!confirm("Tem certeza que deseja cancelar? Isso afeta sua reputação.")) return;
-            
-            await sbClient.from('pedidos').update({ status: 'Solicitado', motoboy_id: null }).eq('id', corridaAtiva.id);
-            carregarFeed();
-        }
-
-        // Utils
-        function showScreen(id) {
-            ['login', 'feed', 'active'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
-            document.getElementById('screen-'+id).classList.remove('hidden');
-            
-            if(id === 'feed' || id === 'active') {
-                document.getElementById('bottom-menu').classList.remove('hidden');
-                document.getElementById('bottom-menu').classList.add('flex');
-            } else {
-                document.getElementById('bottom-menu').classList.add('hidden');
-                document.getElementById('bottom-menu').classList.remove('flex');
+        // Polling (Atualiza o feed a cada 10s se estiver na tela)
+        setInterval(() => {
+            if(!document.getElementById('screen-feed').classList.contains('hidden') && !corridaAtual) {
+                atualizarFeed();
             }
-        }
+        }, 10000);
+
     </script>
 </body>
-  </html>
+</html>
