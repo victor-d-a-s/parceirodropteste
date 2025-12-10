@@ -48,7 +48,11 @@
         .check-btn input:checked + span { background: #FBBF24; color: black; border-color: #F59E0B; }
 
         /* Dropdown Personalizado (Dark Mode) */
-        .custom-select-btn { @apply input-dark flex justify-between items-center cursor-pointer; }
+        .custom-select-btn { 
+            background-color: #111827; border: 1px solid #4b5563; color: white; 
+            padding: 12px; border-radius: 8px; width: 100%; outline: none; 
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
         .custom-options { 
             position: absolute; top: 100%; left: 0; right: 0; 
             background: #1F2937; border: 1px solid #4b5563; border-radius: 8px; 
@@ -107,10 +111,32 @@
                     showScreen('pending'); // Bloqueia na tela de espera
                 }
             } else {
-                // Caso raro: Usuário existe no Auth mas não na tabela motoboys
-                showScreen('welcome');
+                // Se o usuário existe no Auth mas não na tabela motoboys
+                alert("Erro: Cadastro incompleto. Contate o suporte.");
+                sbClient.auth.signOut();
+                location.reload();
             }
         }
+
+        // --- FUNÇÕES GLOBAIS ---
+        function toggleDropdown(id) {
+            const list = document.getElementById(`list-${id}`);
+            list.classList.toggle('show');
+        }
+        function selectOption(id, value) {
+            document.getElementById(`cad-${id}`).value = value;
+            document.getElementById(`display-${id}`).innerText = value;
+            document.getElementById(`display-${id}`).style.color = "white";
+            document.getElementById(`list-${id}`).classList.remove('show');
+            const msg = document.getElementById(`msg-${id}`);
+            if(msg) msg.style.display = 'none';
+        }
+        // Fecha dropdown ao clicar fora
+        document.addEventListener('click', function(e) { 
+            if (!e.target.closest('.relative')) { 
+                document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); 
+            } 
+        });
     </script>
 
     <!-- TELA 1: LOGIN -->
@@ -142,8 +168,7 @@
 
         <button onclick="fazerLogout()" class="text-gray-500 underline text-sm">Sair e tentar novamente mais tarde</button>
     </div>
-
-    <!-- TELA 2: CADASTRO COMPLETO -->
+       <!-- TELA 2: CADASTRO COMPLETO -->
     <div id="screen-cadastro" class="hidden w-full max-w-md fade-in pb-10">
         <div class="flex items-center mb-6">
             <button onclick="showScreen('welcome')" class="text-gray-400 hover:text-white mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
@@ -240,7 +265,7 @@
         </div>
 
         <!-- MOTO -->
-        <p class="section-title">Moto</p>
+        <p class="section-title">Informações da Moto</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -280,34 +305,35 @@
         <!-- LOGIN -->
         <p class="section-title mt-6">Criar Login</p>
         <div class="space-y-3">
-            <div><input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail*" onblur="validarCampo('email')"><p id="msg-email" class="msg-error">Inválido.</p></div>
-            <div><input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)*" onblur="validarCampo('senha')"><p id="msg-senha" class="msg-error">Curta demais.</p></div>
+            <div>
+                <input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail*" onblur="validarCampo('email')">
+                <p id="msg-email" class="msg-error">E-mail inválido.</p>
+            </div>
+            <div>
+                <input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)*" onblur="validarCampo('senha')">
+                <p id="msg-senha" class="msg-error">Mínimo 6 caracteres.</p>
+            </div>
         </div>
 
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
         <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados passarão por análise.</p>
     </div>
-        <!-- TELA 3: FEED (APROVADO) -->
+        <!-- TELA 3: FEED -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
         <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
-        <p class="text-gray-400 mt-2">Você está aprovado.</p>
+        <p class="text-gray-400 mt-2">Você está ativo.</p>
         <div class="mt-10 p-4 bg-gray-800 rounded-xl">
-            <p class="text-sm text-green-500">Mural de Corridas (Em Breve)</p>
+            <p class="text-sm text-green-500 font-bold mb-2">MURAL DE CORRIDAS</p>
+            <p class="text-xs text-gray-400">Em breve, as corridas aparecerão aqui.</p>
         </div>
         <button onclick="fazerLogout()" class="mt-8 text-yellow-500 underline text-sm">Sair</button>
     </div>
 
     <script>
-        // MÁSCARAS
         $(document).ready(function(){ 
-            $('#cad-cpf').mask('000.000.000-00');
-            $('#cad-nasc').mask('00/00/0000');
-            $('#cad-cep').mask('00000-000');
-            $('#cad-zap').mask('(00) 00000-0000');
-            $('#emer-zap').mask('(00) 00000-0000');
-            $('#moto-placa').on('input', function() {
-                this.value = this.value.toUpperCase();
-            });
+            $('#cad-cpf').mask('000.000.000-00'); $('#cad-nasc').mask('00/00/0000'); $('#cad-cep').mask('00000-000');
+            $('#cad-zap').mask('(00) 00000-0000'); $('#emer-zap').mask('(00) 00000-0000');
+            $('#moto-placa').on('input', function() { this.value = this.value.toUpperCase(); });
         });
 
         function showScreen(id) {
@@ -315,22 +341,7 @@
             document.getElementById('screen-'+id).classList.remove('hidden');
         }
 
-        // --- FUNÇÕES GLOBAIS ---
-        function toggleDropdown(id) {
-            const list = document.getElementById(`list-${id}`);
-            list.classList.toggle('show');
-        }
-        function selectOption(id, value) {
-            document.getElementById(`cad-${id}`).value = value;
-            document.getElementById(`display-${id}`).innerText = value;
-            document.getElementById(`display-${id}`).style.color = "white"; 
-            document.getElementById(`list-${id}`).classList.remove('show');
-            const msg = document.getElementById(`msg-${id}`);
-            if(msg) msg.style.display = 'none';
-        }
-        document.addEventListener('click', function(e) { if (!e.target.closest('.relative')) { document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); } });
-
-        // --- VALIDAÇÃO VISUAL ---
+        // --- VALIDAÇÃO ---
         function mostrarErro(id, mostrar) {
             const el = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById('emer-' + id) || document.getElementById(id);
             const msg = document.getElementById('msg-' + id);
@@ -356,25 +367,19 @@
         function validarPlaca(p) { return /^[A-Z]{3}[0-9]{4}$/.test(p) || /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p); }
         function toggleIntegral() { if(document.getElementById('check-integral').checked) { document.querySelectorAll('input[name="disp"]').forEach(c=>c.checked=true); document.getElementById('check-renda').checked=false; } }
         function toggleRenda() { if(document.getElementById('check-renda').checked) document.getElementById('check-integral').checked=false; }
+        function fazerLogout() { sbClient.auth.signOut(); location.reload(); }
 
         async function fazerLogin() {
             const email = document.getElementById('log-email').value;
             const senha = document.getElementById('log-senha').value;
             const btn = document.getElementById('btn-login');
             btn.innerText = "..."; btn.disabled = true;
-            const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+            const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
             if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; } else { location.reload(); }
         }
-        
-        async function fazerLogout() {
-            await sbClient.auth.signOut();
-            window.localStorage.clear();
-            location.reload();
-        }
 
-        // --- ENVIAR CADASTRO (VALIDA TUDO) ---
         async function enviarCadastro() {
-            // Coleta Dados
+            // Coleta
             const nome = document.getElementById('cad-nome').value;
             const cpf = document.getElementById('cad-cpf').value;
             const nasc = document.getElementById('cad-nasc').value;
@@ -382,26 +387,21 @@
             const zap = document.getElementById('cad-zap').value;
             const cep = document.getElementById('cad-cep').value;
             const num = document.getElementById('cad-num').value;
-            
             const emerNome = document.getElementById('emer-nome').value;
             const emerPar = document.getElementById('emer-parentesco').value;
             const emerZap = document.getElementById('emer-zap').value;
-            
             const placa = document.getElementById('moto-placa').value;
             const modelo = document.getElementById('moto-modelo').value;
             const cor = document.getElementById('moto-cor').value;
-            
             const email = document.getElementById('cad-email').value;
             const senha = document.getElementById('cad-senha').value;
-            
             const docFile = document.getElementById('cad-foto-doc').files.length;
             const crlvFile = document.getElementById('cad-foto-crlv').files.length;
 
             let temErro = false;
-                        // Validações
+
             if(!nome) { mostrarErro('nome', true); temErro=true; }
             if(!validarCPF(cpf)) { mostrarErro('cpf', true); temErro=true; }
-            if(nasc.length < 10) { mostrarErro('nasc', true); temErro=true; }
             if(!sexo) { document.getElementById('msg-sexo').style.display='block'; temErro=true; }
             if(!validarPlaca(placa)) { mostrarErro('placa', true); temErro=true; }
             if(!modelo) { mostrarErro('moto-modelo', true); temErro=true; }
@@ -431,7 +431,7 @@
             if(disp.length===0) { document.getElementById('msg-disp').style.display='block'; temErro=true; } else { document.getElementById('msg-disp').style.display='none'; }
 
             if (temErro) {
-                alert("Preencha todos os campos obrigatórios (em vermelho).");
+                alert("Preencha todos os campos corretamente (vermelho).");
                 document.getElementById('screen-cadastro').scrollIntoView({behavior:'smooth'});
                 return;
             }
@@ -439,13 +439,10 @@
             const btn = document.getElementById('btn-cadastrar');
             btn.innerText = "Enviando..."; btn.disabled = true;
 
-            // Metadados para o Trigger (Gatilho) criar na tabela motoboys
             const metaData = {
                 tipo_usuario: 'motoboy',
-                nome: nome, cpf: cpf, whatsapp: zap, 
-                placa: placa, modelo: modelo, cor: cor, 
-                disponibilidade: disp.join(', ')
-                // Fotos não vão por aqui ainda (requer Storage configurado)
+                nome: nome, cpf: cpf, whatsapp: zap, placa: placa,
+                modelo: modelo, cor: cor, disponibilidade: disp.join(', ')
             };
 
             try {
