@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Parceiro Drop</title>
+    
     <!-- Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- jQuery e Máscaras -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -48,7 +51,11 @@
         .check-btn input:checked + span { background: #FBBF24; color: black; border-color: #F59E0B; }
 
         /* Dropdown Personalizado (Dark Mode) */
-        .custom-select-btn { @apply input-dark flex justify-between items-center cursor-pointer; }
+        .custom-select-btn { 
+            background-color: #111827; border: 1px solid #4b5563; color: white; 
+            padding: 12px; border-radius: 8px; width: 100%; outline: none; 
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
         .custom-options { 
             position: absolute; top: 100%; left: 0; right: 0; 
             background: #1F2937; border: 1px solid #4b5563; border-radius: 8px; 
@@ -70,19 +77,21 @@
         <div class="spinner w-10 h-10 border-4 mb-4"></div>
         <p class="text-gray-400 text-sm font-bold">Carregando Parceiro...</p>
     </div>
-
-    <!-- CONFIGURAÇÃO SUPABASE -->
+        <!-- CONFIGURAÇÃO SUPABASE -->
     <script>
-        // CHAVES CORRETAS (PROJETO NOVO)
-        const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim(); 
+        // ---------------------------------------------------------
+        // CHAVES CORRIGIDAS (SEM ESPAÇOS, URL MINÚSCULA)
+        // ---------------------------------------------------------
+        const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim();
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
         
         let sbClient = null;
         try {
+            if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error("Chaves vazias.");
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch(e) {
-            console.error("Erro ao iniciar Supabase:", e);
-            alert("Erro crítico: Chave inválida no código.");
+            console.error("Erro inicialização Supabase:", e);
+            alert("Erro fatal: Falha na conexão com o banco de dados.");
         }
 
         let userSession = null;
@@ -92,11 +101,11 @@
             const globalLoad = document.getElementById('global-loading');
             try {
                 if(!sbClient) throw new Error("Cliente DB nulo");
-                
+
                 const { data: { session }, error } = await sbClient.auth.getSession();
                 
-                if (error) throw error;
-
+                if(error) throw error;
+                
                 if (session) { 
                     userSession = session; 
                     verificarAprovacao(); 
@@ -123,16 +132,36 @@
                     showScreen('pending'); // Bloqueia na tela de espera
                 }
             } else {
-                // Caso raro: Usuário criado no Auth mas falhou o trigger
-                alert("Erro no cadastro. Tente sair e entrar novamente.");
+                // Se o usuário existe no Auth mas não na tabela motoboys (Erro de cadastro)
+                alert("Erro: Cadastro incompleto. Contate o suporte.");
                 sbClient.auth.signOut();
                 location.reload();
             }
         }
+
+        // --- FUNÇÕES GLOBAIS ---
+        function toggleDropdown(id) {
+            const list = document.getElementById(`list-${id}`);
+            list.classList.toggle('show');
+        }
+        function selectOption(id, value) {
+            document.getElementById(`cad-${id}`).value = value;
+            document.getElementById(`display-${id}`).innerText = value;
+            document.getElementById(`display-${id}`).style.color = "white"; 
+            document.getElementById(`list-${id}`).classList.remove('show');
+            const msg = document.getElementById(`msg-${id}`);
+            if(msg) msg.style.display = 'none';
+        }
+        // Fecha dropdown ao clicar fora
+        document.addEventListener('click', function(e) { 
+            if (!e.target.closest('.relative')) { 
+                document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); 
+            } 
+        });
     </script>
 
     <!-- TELA 1: LOGIN -->
-    <div id="screen-welcome" class="hidden app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md">
+    <div id="screen-welcome" class="app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md hidden">
         <div class="mb-8">
             <div class="inline-block p-4 rounded-full bg-yellow-500 text-black mb-4"><i class="fas fa-motorcycle text-4xl"></i></div>
             <h1 class="text-3xl font-bold text-white mb-1">Parceiro Drop</h1>
@@ -236,8 +265,7 @@
                 <input type="text" id="cad-cidade" class="input-dark input-readonly" placeholder="Cidade" readonly>
             </div>
         </div>
-
-        <!-- EMERGÊNCIA -->
+                <!-- EMERGÊNCIA -->
         <p class="section-title">Emergência</p>
         <div class="space-y-3 bg-gray-800 p-3 rounded-lg">
             <div>
@@ -298,11 +326,11 @@
         <p class="section-title mt-6">Criar Login</p>
         <div class="space-y-3">
             <div>
-                <input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail*" onblur="validarCampo('email')">
+                <input type="email" id="cad-email" class="input-dark" placeholder="Seu melhor E-mail*" onblur="validarCampo('email')">
                 <p id="msg-email" class="msg-error">E-mail inválido.</p>
             </div>
             <div>
-                <input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)*" onblur="validarCampo('senha')">
+                <input type="password" id="cad-senha" class="input-dark" placeholder="Crie uma Senha (Mín. 6 dígitos)*" onblur="validarCampo('senha')">
                 <p id="msg-senha" class="msg-error">Mínimo 6 caracteres.</p>
             </div>
         </div>
@@ -310,10 +338,10 @@
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
         <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados passarão por análise.</p>
     </div>
-        <!-- TELA 3: FEED (PLACEHOLDER) -->
+        <!-- TELA 3: FEED (APROVADO) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
         <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
-        <p class="text-gray-400 mt-2">Você está ativo.</p>
+        <p class="text-gray-400 mt-2">Você está aprovado.</p>
         <div class="mt-10 p-4 bg-gray-800 rounded-xl">
             <p class="text-sm text-green-500 font-bold mb-2">MURAL DE CORRIDAS</p>
             <p class="text-xs text-gray-400">Em breve, as corridas aparecerão aqui.</p>
@@ -322,29 +350,24 @@
     </div>
 
     <script>
+        // MÁSCARAS
         $(document).ready(function(){ 
-            $('#cad-cpf').mask('000.000.000-00'); $('#cad-nasc').mask('00/00/0000'); $('#cad-cep').mask('00000-000');
-            $('#cad-zap').mask('(00) 00000-0000'); $('#emer-zap').mask('(00) 00000-0000');
-            $('#moto-placa').on('input', function() { this.value = this.value.toUpperCase(); });
+            $('#cad-cpf').mask('000.000.000-00');
+            $('#cad-nasc').mask('00/00/0000');
+            $('#cad-cep').mask('00000-000');
+            $('#cad-zap').mask('(00) 00000-0000');
+            $('#emer-zap').mask('(00) 00000-0000');
+            $('#moto-placa').on('input', function() {
+                this.value = this.value.toUpperCase();
+            });
         });
 
-        // --- FUNÇÕES VISUAIS ---
         function showScreen(id) {
             ['welcome', 'cadastro', 'feed', 'pending'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
             document.getElementById('screen-'+id).classList.remove('hidden');
         }
 
-        function toggleDropdown(id) { document.getElementById(`list-${id}`).classList.toggle('show'); }
-        function selectOption(id, value) {
-            document.getElementById(`cad-${id}`).value = value;
-            document.getElementById(`display-${id}`).innerText = value;
-            document.getElementById(`display-${id}`).style.color = "white";
-            document.getElementById(`list-${id}`).classList.remove('show');
-            document.getElementById(`msg-${id}`).style.display = 'none';
-        }
-        document.addEventListener('click', function(e) { if (!e.target.closest('.relative')) { document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); } });
-
-        // --- VALIDAÇÃO ---
+        // --- VALIDAÇÃO VISUAL ---
         function mostrarErro(id, mostrar) {
             const el = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById('emer-' + id) || document.getElementById(id);
             const msg = document.getElementById('msg-' + id);
@@ -407,11 +430,12 @@
             const cor = document.getElementById('moto-cor').value;
             const email = document.getElementById('cad-email').value;
             const senha = document.getElementById('cad-senha').value;
+            
             const docFile = document.getElementById('cad-foto-doc').files.length;
             const crlvFile = document.getElementById('cad-foto-crlv').files.length;
 
             let temErro = false;
-
+                        // Validações
             if(!nome) { mostrarErro('nome', true); temErro=true; }
             if(!validarCPF(cpf)) { mostrarErro('cpf', true); temErro=true; }
             if(!sexo) { document.getElementById('msg-sexo').style.display='block'; temErro=true; }
@@ -443,7 +467,7 @@
             if(disp.length===0) { document.getElementById('msg-disp').style.display='block'; temErro=true; } else { document.getElementById('msg-disp').style.display='none'; }
 
             if (temErro) {
-                alert("Preencha todos os campos corretamente (em vermelho).");
+                alert("Preencha todos os campos corretamente (vermelho).");
                 document.getElementById('screen-cadastro').scrollIntoView({behavior:'smooth'});
                 return;
             }
