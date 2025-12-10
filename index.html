@@ -66,7 +66,7 @@
     <script>
         // CHAVES CORRETAS (COM TRIM)
         const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim(); 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcG5uaWpraGdzamFyaXhveWhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNjUyNzYsImV4cCI6MjA4MDY0MTI3Nn0.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
         
         let sbClient = null;
         try {
@@ -77,20 +77,43 @@
         }
 
         let userSession = null;
+        let userData = null;
 
         window.onload = async function() {
             if(!sbClient) return;
             try {
                 const { data: { session } } = await sbClient.auth.getSession();
-                if (session) { userSession = session; showScreen('feed'); } 
-                else { showScreen('welcome'); }
+                if (session) { 
+                    userSession = session; 
+                    verificarAprovacao(); 
+                } else { 
+                    showScreen('welcome'); 
+                }
             } catch(e) {
-                // Silencioso no load para não assustar
+                console.error("Erro sessão:", e);
                 showScreen('welcome');
             }
         };
+
+        // Verifica se o motoboy está aprovado no banco
+        async function verificarAprovacao() {
+            const { data, error } = await sbClient.from('motoboys').select('*').eq('id', userSession.user.id).single();
+            
+            if (data) {
+                userData = data;
+                if (data.status === 'Aprovado') {
+                    showScreen('feed'); // Libera o app
+                } else {
+                    showScreen('pending'); // Bloqueia na tela de espera
+                }
+            } else {
+                // Caso raro: Usuário existe no Auth mas não na tabela motoboys
+                showScreen('welcome');
+            }
+        }
     </script>
-        <!-- TELA 1: LOGIN -->
+
+    <!-- TELA 1: LOGIN -->
     <div id="screen-welcome" class="app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md">
         <div class="mb-8">
             <div class="inline-block p-4 rounded-full bg-yellow-500 text-black mb-4"><i class="fas fa-motorcycle text-4xl"></i></div>
@@ -104,6 +127,20 @@
             <button onclick="fazerLogin()" id="btn-login" class="w-full btn-action py-4 rounded-xl shadow-lg">ENTRAR</button>
             <p onclick="showScreen('cadastro')" class="text-gray-500 text-xs mt-4 cursor-pointer underline">Quero me cadastrar</p>
         </div>
+    </div>
+
+    <!-- TELA 1.5: PENDENTE (AGUARDANDO APROVAÇÃO) -->
+    <div id="screen-pending" class="hidden app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md">
+        <div class="mb-6 text-yellow-500 animate-pulse"><i class="fas fa-clock text-6xl"></i></div>
+        <h2 class="text-2xl font-bold text-white mb-2">Cadastro em Análise</h2>
+        <p class="text-gray-400 text-sm mb-8">Seus dados foram enviados para a central. Aguarde a aprovação para começar a receber corridas.</p>
+        
+        <div class="bg-gray-800 p-4 rounded-xl mb-8">
+            <p class="text-xs text-gray-500 uppercase font-bold mb-1">SEU STATUS</p>
+            <p class="text-yellow-400 font-bold text-lg">PENDENTE</p>
+        </div>
+
+        <button onclick="fazerLogout()" class="text-gray-500 underline text-sm">Sair e tentar novamente mais tarde</button>
     </div>
 
     <!-- TELA 2: CADASTRO COMPLETO -->
@@ -203,7 +240,7 @@
         </div>
 
         <!-- MOTO -->
-        <p class="section-title">Informações da Moto</p>
+        <p class="section-title">Moto</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -238,29 +275,26 @@
             <label class="check-btn"><input type="checkbox" id="check-integral" onchange="toggleIntegral()"><span>INTEGRAL</span></label>
             <label class="check-btn"><input type="checkbox" id="check-renda" onchange="toggleRenda()"><span>RENDA EXTRA</span></label>
         </div>
-        <p id="msg-disp" class="msg-error text-center">Selecione pelo menos uma opção.</p>
+        <p id="msg-disp" class="msg-error text-center">Selecione uma opção.</p>
 
         <!-- LOGIN -->
         <p class="section-title mt-6">Criar Login</p>
         <div class="space-y-3">
-            <div>
-                <input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail*" onblur="validarCampo('email')">
-                <p id="msg-email" class="msg-error">E-mail inválido.</p>
-            </div>
-            <div>
-                <input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)*" onblur="validarCampo('senha')">
-                <p id="msg-senha" class="msg-error">Mínimo 6 caracteres.</p>
-            </div>
+            <div><input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail*" onblur="validarCampo('email')"><p id="msg-email" class="msg-error">Inválido.</p></div>
+            <div><input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)*" onblur="validarCampo('senha')"><p id="msg-senha" class="msg-error">Curta demais.</p></div>
         </div>
 
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
         <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados passarão por análise.</p>
     </div>
-        <!-- TELA 3: FEED (PLACEHOLDER) -->
+        <!-- TELA 3: FEED (APROVADO) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
         <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
-        <p class="text-gray-400 mt-2">Cadastro recebido.</p>
-        <button onclick="sbClient.auth.signOut(); location.reload()" class="mt-8 text-yellow-500 underline text-sm">Sair</button>
+        <p class="text-gray-400 mt-2">Você está aprovado.</p>
+        <div class="mt-10 p-4 bg-gray-800 rounded-xl">
+            <p class="text-sm text-green-500">Mural de Corridas (Em Breve)</p>
+        </div>
+        <button onclick="fazerLogout()" class="mt-8 text-yellow-500 underline text-sm">Sair</button>
     </div>
 
     <script>
@@ -271,13 +305,17 @@
             $('#cad-cep').mask('00000-000');
             $('#cad-zap').mask('(00) 00000-0000');
             $('#emer-zap').mask('(00) 00000-0000');
-            // Placa
             $('#moto-placa').on('input', function() {
                 this.value = this.value.toUpperCase();
             });
         });
 
-        // MENU FLUTUANTE (DROPDOWN)
+        function showScreen(id) {
+            ['welcome', 'cadastro', 'feed', 'pending'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
+            document.getElementById('screen-'+id).classList.remove('hidden');
+        }
+
+        // --- FUNÇÕES GLOBAIS ---
         function toggleDropdown(id) {
             const list = document.getElementById(`list-${id}`);
             list.classList.toggle('show');
@@ -285,33 +323,20 @@
         function selectOption(id, value) {
             document.getElementById(`cad-${id}`).value = value;
             document.getElementById(`display-${id}`).innerText = value;
-            document.getElementById(`display-${id}`).style.color = "white"; // Muda cor pra indicar seleção
+            document.getElementById(`display-${id}`).style.color = "white"; 
             document.getElementById(`list-${id}`).classList.remove('show');
-            document.getElementById('msg-sexo').style.display = 'none';
+            const msg = document.getElementById(`msg-${id}`);
+            if(msg) msg.style.display = 'none';
         }
         document.addEventListener('click', function(e) { if (!e.target.closest('.relative')) { document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); } });
 
-
-        function showScreen(id) {
-            ['welcome', 'cadastro', 'feed'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
-            document.getElementById('screen-'+id).classList.remove('hidden');
-        }
-
-        // --- SISTEMA DE VALIDAÇÃO VISUAL ---
+        // --- VALIDAÇÃO VISUAL ---
         function mostrarErro(id, mostrar) {
             const el = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById('emer-' + id) || document.getElementById(id);
             const msg = document.getElementById('msg-' + id);
-            
             if(el) {
-                if (mostrar) {
-                    el.classList.add('input-error');
-                    el.classList.remove('input-success');
-                    if(msg) msg.style.display = 'block';
-                } else {
-                    el.classList.remove('input-error');
-                    el.classList.add('input-success');
-                    if(msg) msg.style.display = 'none';
-                }
+                if(mostrar) { el.classList.add('input-error'); el.classList.remove('input-success'); if(msg) msg.style.display='block'; }
+                else { el.classList.remove('input-error'); el.classList.add('input-success'); if(msg) msg.style.display='none'; }
             }
         }
 
@@ -325,80 +350,26 @@
             if(tipo === 'nome') mostrarErro('nome', document.getElementById('cad-nome').value.length < 5);
         }
 
-        // 1. Calcular Idade
-        function calcularIdade() {
-            const d = document.getElementById('cad-nasc').value;
-            if (d.length !== 10) { mostrarErro('nasc', true); return; }
-            const p = d.split('/'), h = new Date(), n = new Date(p[2], p[1]-1, p[0]);
-            let i = h.getFullYear() - n.getFullYear();
-            if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) i--;
-            
-            if(isNaN(i) || i < 0) {
-                mostrarErro('nasc', true);
-                document.getElementById('cad-idade').value = '';
-            } else {
-                mostrarErro('nasc', false);
-                document.getElementById('cad-idade').value = i;
-                if(i < 18) alert("Maior de 18 anos obrigatório.");
-            }
-        }
+        function calcularIdade() { const d=document.getElementById('cad-nasc').value; if(d.length!==10) { mostrarErro('nasc', true); return; } const p=d.split('/'), h=new Date(), n=new Date(p[2],p[1]-1,p[0]); let i=h.getFullYear()-n.getFullYear(); if(h<new Date(h.getFullYear(),n.getMonth(),n.getDate()))i--; if(isNaN(i)||i<0){ mostrarErro('nasc', true); document.getElementById('cad-idade').value=''; } else { mostrarErro('nasc', false); document.getElementById('cad-idade').value=i; if(i<18)alert("Maior de 18 anos."); } }
+        async function buscarCep() { let c=document.getElementById('cad-cep').value.replace(/\D/g,''); if(c.length!==8) { mostrarErro('cep', true); return; } try { const r=await fetch(`https://viacep.com.br/ws/${c}/json/`); const d=await r.json(); if(!d.erro){ document.getElementById('cad-rua').value=d.logradouro; document.getElementById('cad-bairro').value=d.bairro; document.getElementById('cad-cidade').value=`${d.localidade}/${d.uf}`; document.getElementById('cad-num').focus(); mostrarErro('cep', false); } else { mostrarErro('cep', true); } } catch(e){ mostrarErro('cep', true); } }
+        function validarCPF(c){ c=c.replace(/[^\d]+/g,''); if(c.length!=11||/^(\d)\1{10}$/.test(c))return false; let s=0,r; for(let i=1;i<=9;i++)s+=parseInt(c.substring(i-1,i))*(11-i); r=(s*10)%11; if(r==10||r==11)r=0; if(r!=parseInt(c.substring(9,10)))return false; s=0; for(let i=1;i<=10;i++)s+=parseInt(c.substring(i-1,i))*(12-i); r=(s*10)%11; if(r==10||r==11)r=0; if(r!=parseInt(c.substring(10,11)))return false; return true; }
+        function validarPlaca(p) { return /^[A-Z]{3}[0-9]{4}$/.test(p) || /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p); }
+        function toggleIntegral() { if(document.getElementById('check-integral').checked) { document.querySelectorAll('input[name="disp"]').forEach(c=>c.checked=true); document.getElementById('check-renda').checked=false; } }
+        function toggleRenda() { if(document.getElementById('check-renda').checked) document.getElementById('check-integral').checked=false; }
 
-        // 2. Buscar CEP
-        async function buscarCep() {
-            let cep = document.getElementById('cad-cep').value.replace(/\D/g, '');
-            if (cep.length !== 8) { mostrarErro('cep', true); return; }
-            try {
-                const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                const data = await res.json();
-                if (!data.erro) {
-                    document.getElementById('cad-rua').value = data.logradouro;
-                    document.getElementById('cad-bairro').value = data.bairro;
-                    document.getElementById('cad-cidade').value = `${data.localidade}/${data.uf}`;
-                    document.getElementById('cad-num').focus();
-                    mostrarErro('cep', false);
-                } else { mostrarErro('cep', true); }
-            } catch (e) { mostrarErro('cep', true); }
+        async function fazerLogin() {
+            const email = document.getElementById('log-email').value;
+            const senha = document.getElementById('log-senha').value;
+            const btn = document.getElementById('btn-login');
+            btn.innerText = "..."; btn.disabled = true;
+            const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; } else { location.reload(); }
         }
-
-        // 3. Validação CPF
-        function validarCPF(cpf) {
-            cpf = cpf.replace(/[^\d]+/g, '');
-            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
-            let soma = 0, resto;
-            for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i-1, i)) * (11 - i);
-            resto = (soma * 10) % 11;
-            if ((resto == 10) || (resto == 11)) resto = 0;
-            if (resto != parseInt(cpf.substring(9, 10))) return false;
-            soma = 0;
-            for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i-1, i)) * (12 - i);
-            resto = (soma * 10) % 11;
-            if ((resto == 10) || (resto == 11)) resto = 0;
-            if (resto != parseInt(cpf.substring(10, 11))) return false;
-            return true;
-        }
-
-        // 4. Validação Placa
-        function validarPlaca(placa) {
-            const regexAntiga = /^[A-Z]{3}[0-9]{4}$/;
-            const regexMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
-            return regexAntiga.test(placa) || regexMercosul.test(placa);
-        }
-
-        // 5. Checkbox Lógica
-        function toggleIntegral() {
-            const isIntegral = document.getElementById('check-integral').checked;
-            const checks = document.querySelectorAll('input[name="disp"]');
-            const renda = document.getElementById('check-renda');
-            
-            if (isIntegral) {
-                checks.forEach(c => c.checked = true);
-                renda.checked = false;
-            }
-        }
-        function toggleRenda() {
-            const isRenda = document.getElementById('check-renda').checked;
-            const integral = document.getElementById('check-integral');
-            if (isRenda) integral.checked = false;
+        
+        async function fazerLogout() {
+            await sbClient.auth.signOut();
+            window.localStorage.clear();
+            location.reload();
         }
 
         // --- ENVIAR CADASTRO (VALIDA TUDO) ---
@@ -427,85 +398,68 @@
             const crlvFile = document.getElementById('cad-foto-crlv').files.length;
 
             let temErro = false;
-
-            // Validações Visuais (Marca vermelho o que falta)
-            if(!nome) { mostrarErro('nome', true); temErro = true; }
-            if(!validarCPF(cpf)) { mostrarErro('cpf', true); temErro = true; }
-            if(nasc.length < 10) { mostrarErro('nasc', true); temErro = true; }
-            if(!sexo) { document.getElementById('msg-sexo').style.display = 'block'; temErro = true; }
-            if(!validarPlaca(placa)) { mostrarErro('placa', true); temErro = true; }
-            if(!modelo) { mostrarErro('moto-modelo', true); temErro = true; }
-            if(!cor) { mostrarErro('moto-cor', true); temErro = true; }
-            if(!num) { mostrarErro('num', true); temErro = true; }
-            if(!cep) { mostrarErro('cep', true); temErro = true; }
-            if(!emerNome) { mostrarErro('emer-nome', true); temErro = true; }
-            if(!emerPar) { mostrarErro('emer-parentesco', true); temErro = true; }
+                        // Validações
+            if(!nome) { mostrarErro('nome', true); temErro=true; }
+            if(!validarCPF(cpf)) { mostrarErro('cpf', true); temErro=true; }
+            if(nasc.length < 10) { mostrarErro('nasc', true); temErro=true; }
+            if(!sexo) { document.getElementById('msg-sexo').style.display='block'; temErro=true; }
+            if(!validarPlaca(placa)) { mostrarErro('placa', true); temErro=true; }
+            if(!modelo) { mostrarErro('moto-modelo', true); temErro=true; }
+            if(!cor) { mostrarErro('moto-cor', true); temErro=true; }
+            if(!num) { mostrarErro('num', true); temErro=true; }
+            if(!cep) { mostrarErro('cep', true); temErro=true; }
+            if(!emerNome) { mostrarErro('emer-nome', true); temErro=true; }
+            if(!emerPar) { mostrarErro('emer-parentesco', true); temErro=true; }
             
-            // Valida Zap (DDD+9+Num)
             const zClean = zap.replace(/\D/g, '');
-            if(zClean.length !== 11 || zClean[2] !== '9') { mostrarErro('zap', true); temErro = true; }
+            if(zClean.length !== 11 || zClean[2] !== '9') { mostrarErro('zap', true); temErro=true; }
             const zEmerClean = emerZap.replace(/\D/g, '');
-            if(zEmerClean.length !== 11 || zEmerClean[2] !== '9') { mostrarErro('emer-zap', true); temErro = true; }
-                        // Valida Arquivos e Login
+            if(zEmerClean.length !== 11 || zEmerClean[2] !== '9') { mostrarErro('emer-zap', true); temErro=true; }
+
             if(docFile === 0) { document.getElementById('msg-foto-doc').style.display='block'; temErro=true; }
             else document.getElementById('msg-foto-doc').style.display='none';
 
             if(crlvFile === 0) { document.getElementById('msg-foto-crlv').style.display='block'; temErro=true; }
             else document.getElementById('msg-foto-crlv').style.display='none';
             
-            if(!email) { mostrarErro('email', true); temErro = true; }
-            if(senha.length < 6) { mostrarErro('senha', true); temErro = true; }
+            if(!email) { mostrarErro('email', true); temErro=true; }
+            if(senha.length<6) { mostrarErro('senha', true); temErro=true; }
 
-            // Verifica Disponibilidade
             let disp = []; document.querySelectorAll('input[name="disp"]:checked').forEach(c => disp.push(c.value));
             if(document.getElementById('check-integral').checked) disp.push('Integral');
             if(document.getElementById('check-renda').checked) disp.push('Renda Extra');
-            
-            if(disp.length === 0) { document.getElementById('msg-disp').style.display = 'block'; temErro = true; }
-            else document.getElementById('msg-disp').style.display = 'none';
+            if(disp.length===0) { document.getElementById('msg-disp').style.display='block'; temErro=true; } else { document.getElementById('msg-disp').style.display='none'; }
 
-            // Se tiver erro, para aqui
             if (temErro) {
-                alert("Verifique os campos em vermelho.");
-                document.getElementById('screen-cadastro').scrollIntoView({behavior: 'smooth'});
+                alert("Preencha todos os campos obrigatórios (em vermelho).");
+                document.getElementById('screen-cadastro').scrollIntoView({behavior:'smooth'});
                 return;
             }
 
             const btn = document.getElementById('btn-cadastrar');
             btn.innerText = "Enviando..."; btn.disabled = true;
 
+            // Metadados para o Trigger (Gatilho) criar na tabela motoboys
             const metaData = {
                 tipo_usuario: 'motoboy',
-                nome: nome, cpf: cpf, whatsapp: zap, placa: placa,
-                modelo: modelo, cor: cor, disponibilidade: disp.join(', ')
+                nome: nome, cpf: cpf, whatsapp: zap, 
+                placa: placa, modelo: modelo, cor: cor, 
+                disponibilidade: disp.join(', ')
+                // Fotos não vão por aqui ainda (requer Storage configurado)
             };
 
             try {
                 const { data, error } = await sbClient.auth.signUp({
-                    email: email,
-                    password: senha,
-                    options: { data: metaData }
+                    email: email, password: senha, options: { data: metaData }
                 });
 
                 if (error) throw error;
-
-                alert("Cadastro realizado com sucesso! Aguarde a aprovação da central.");
+                alert("Cadastro Realizado! Aguarde aprovação.");
                 location.reload();
-
             } catch (e) {
-                alert("Erro ao cadastrar: " + e.message);
+                alert("Erro: " + e.message);
                 btn.innerText = "ENVIAR CADASTRO"; btn.disabled = false;
             }
-        }
-        
-        async function fazerLogin() {
-            const email = document.getElementById('log-email').value;
-            const senha = document.getElementById('log-senha').value;
-            const btn = document.getElementById('btn-login');
-            btn.innerText = "..."; btn.disabled = true;
-            const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; }
-            else { location.reload(); }
         }
     </script>
 </body>
