@@ -48,11 +48,7 @@
         .check-btn input:checked + span { background: #FBBF24; color: black; border-color: #F59E0B; }
 
         /* Dropdown Personalizado (Dark Mode) */
-        .custom-select-btn { 
-            background-color: #111827; border: 1px solid #4b5563; color: white; 
-            padding: 12px; border-radius: 8px; width: 100%; outline: none; 
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-        }
+        .custom-select-btn { @apply input-dark flex justify-between items-center cursor-pointer; }
         .custom-options { 
             position: absolute; top: 100%; left: 0; right: 0; 
             background: #1F2937; border: 1px solid #4b5563; border-radius: 8px; 
@@ -62,13 +58,22 @@
         .custom-option { padding: 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid #374151; color: white; }
         .custom-option:hover { background-color: #374151; color: #FBBF24; }
         .custom-option:last-child { border-bottom: none; }
+        
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-left-color: #FBBF24; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4">
 
+    <!-- LOADING GLOBAL -->
+    <div id="global-loading" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[100]">
+        <div class="spinner w-10 h-10 border-4 mb-4"></div>
+        <p class="text-gray-400 text-sm font-bold">Carregando Parceiro...</p>
+    </div>
+
     <!-- CONFIGURAÇÃO SUPABASE -->
     <script>
-        // CHAVES CORRETAS (COM TRIM)
+        // CHAVES CORRETAS (PROJETO NOVO)
         const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim(); 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
         
@@ -77,16 +82,21 @@
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch(e) {
             console.error("Erro ao iniciar Supabase:", e);
-            alert("Erro crítico: Falha na conexão com o Banco de Dados.");
+            alert("Erro crítico: Chave inválida no código.");
         }
 
         let userSession = null;
         let userData = null;
 
         window.onload = async function() {
-            if(!sbClient) return;
+            const globalLoad = document.getElementById('global-loading');
             try {
-                const { data: { session } } = await sbClient.auth.getSession();
+                if(!sbClient) throw new Error("Cliente DB nulo");
+                
+                const { data: { session }, error } = await sbClient.auth.getSession();
+                
+                if (error) throw error;
+
                 if (session) { 
                     userSession = session; 
                     verificarAprovacao(); 
@@ -96,6 +106,8 @@
             } catch(e) {
                 console.error("Erro sessão:", e);
                 showScreen('welcome');
+            } finally {
+                if(globalLoad) globalLoad.style.display = 'none';
             }
         };
 
@@ -111,36 +123,16 @@
                     showScreen('pending'); // Bloqueia na tela de espera
                 }
             } else {
-                // Se o usuário existe no Auth mas não na tabela motoboys
-                alert("Erro: Cadastro incompleto. Contate o suporte.");
+                // Caso raro: Usuário criado no Auth mas falhou o trigger
+                alert("Erro no cadastro. Tente sair e entrar novamente.");
                 sbClient.auth.signOut();
                 location.reload();
             }
         }
-
-        // --- FUNÇÕES GLOBAIS ---
-        function toggleDropdown(id) {
-            const list = document.getElementById(`list-${id}`);
-            list.classList.toggle('show');
-        }
-        function selectOption(id, value) {
-            document.getElementById(`cad-${id}`).value = value;
-            document.getElementById(`display-${id}`).innerText = value;
-            document.getElementById(`display-${id}`).style.color = "white";
-            document.getElementById(`list-${id}`).classList.remove('show');
-            const msg = document.getElementById(`msg-${id}`);
-            if(msg) msg.style.display = 'none';
-        }
-        // Fecha dropdown ao clicar fora
-        document.addEventListener('click', function(e) { 
-            if (!e.target.closest('.relative')) { 
-                document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); 
-            } 
-        });
     </script>
 
     <!-- TELA 1: LOGIN -->
-    <div id="screen-welcome" class="app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md">
+    <div id="screen-welcome" class="hidden app-container p-8 flex flex-col justify-center text-center fade-in w-full max-w-md">
         <div class="mb-8">
             <div class="inline-block p-4 rounded-full bg-yellow-500 text-black mb-4"><i class="fas fa-motorcycle text-4xl"></i></div>
             <h1 class="text-3xl font-bold text-white mb-1">Parceiro Drop</h1>
@@ -168,7 +160,7 @@
 
         <button onclick="fazerLogout()" class="text-gray-500 underline text-sm">Sair e tentar novamente mais tarde</button>
     </div>
-       <!-- TELA 2: CADASTRO COMPLETO -->
+        <!-- TELA 2: CADASTRO COMPLETO -->
     <div id="screen-cadastro" class="hidden w-full max-w-md fade-in pb-10">
         <div class="flex items-center mb-6">
             <button onclick="showScreen('welcome')" class="text-gray-400 hover:text-white mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
@@ -265,7 +257,7 @@
         </div>
 
         <!-- MOTO -->
-        <p class="section-title">Informações da Moto</p>
+        <p class="section-title">Moto</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -318,7 +310,7 @@
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
         <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados passarão por análise.</p>
     </div>
-        <!-- TELA 3: FEED -->
+        <!-- TELA 3: FEED (PLACEHOLDER) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
         <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
         <p class="text-gray-400 mt-2">Você está ativo.</p>
@@ -336,10 +328,21 @@
             $('#moto-placa').on('input', function() { this.value = this.value.toUpperCase(); });
         });
 
+        // --- FUNÇÕES VISUAIS ---
         function showScreen(id) {
             ['welcome', 'cadastro', 'feed', 'pending'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
             document.getElementById('screen-'+id).classList.remove('hidden');
         }
+
+        function toggleDropdown(id) { document.getElementById(`list-${id}`).classList.toggle('show'); }
+        function selectOption(id, value) {
+            document.getElementById(`cad-${id}`).value = value;
+            document.getElementById(`display-${id}`).innerText = value;
+            document.getElementById(`display-${id}`).style.color = "white";
+            document.getElementById(`list-${id}`).classList.remove('show');
+            document.getElementById(`msg-${id}`).style.display = 'none';
+        }
+        document.addEventListener('click', function(e) { if (!e.target.closest('.relative')) { document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); } });
 
         // --- VALIDAÇÃO ---
         function mostrarErro(id, mostrar) {
@@ -373,11 +376,20 @@
             const email = document.getElementById('log-email').value;
             const senha = document.getElementById('log-senha').value;
             const btn = document.getElementById('btn-login');
+
             btn.innerText = "..."; btn.disabled = true;
-            const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; } else { location.reload(); }
+
+            const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+
+            if (error) {
+                alert("Erro: " + error.message);
+                btn.innerText = "ENTRAR"; btn.disabled = false;
+            } else {
+                location.reload();
+            }
         }
 
+        // --- ENVIAR CADASTRO ---
         async function enviarCadastro() {
             // Coleta
             const nome = document.getElementById('cad-nome').value;
@@ -431,7 +443,7 @@
             if(disp.length===0) { document.getElementById('msg-disp').style.display='block'; temErro=true; } else { document.getElementById('msg-disp').style.display='none'; }
 
             if (temErro) {
-                alert("Preencha todos os campos corretamente (vermelho).");
+                alert("Preencha todos os campos corretamente (em vermelho).");
                 document.getElementById('screen-cadastro').scrollIntoView({behavior:'smooth'});
                 return;
             }
