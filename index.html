@@ -9,7 +9,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -22,36 +21,62 @@
         .btn-action:disabled { background-color: #4B5563; color: #9CA3AF; cursor: not-allowed; }
         
         .dark-card { background-color: #1F2937; border: 1px solid #374151; border-radius: 12px; }
-        .input-dark { background-color: #111827; border: 1px solid #4b5563; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; }
+        
+        /* Inputs */
+        .input-dark { 
+            background-color: #111827; border: 1px solid #4b5563; color: white; 
+            padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; 
+        }
         .input-dark:focus { border-color: #FBBF24; }
-        .input-error { border-color: #EF4444 !important; background-color: rgba(239, 68, 68, 0.1); }
-        .input-success { border-color: #10B981 !important; background-color: rgba(16, 185, 129, 0.05); }
-        .msg-error { color: #EF4444; font-size: 10px; margin-top: 4px; display: none; }
-        .msg-success { color: #10B981; font-size: 10px; margin-top: 4px; display: none; }
         .input-readonly { background-color: #374151; color: #9CA3AF; cursor: not-allowed; }
+
+        /* Validação Visual */
+        .input-error { border-color: #EF4444 !important; background-color: rgba(239, 68, 68, 0.1); }
+        .input-success { border-color: #10B981 !important; }
+        .msg-error { color: #EF4444; font-size: 10px; margin-top: 4px; display: none; }
+        
+        /* Títulos */
         .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #FBBF24; margin-bottom: 8px; letter-spacing: 1px; border-bottom: 1px solid #374151; padding-bottom: 4px; margin-top: 16px; }
+
+        /* Checkbox Customizado */
         .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
         .check-btn input { display: none; }
-        .check-btn span { display: inline-block; padding: 8px 16px; background: #374151; border-radius: 20px; font-size: 12px; font-weight: bold; color: #9CA3AF; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .check-btn span { 
+            display: inline-block; padding: 8px 16px; background: #374151; border-radius: 20px; 
+            font-size: 12px; font-weight: bold; color: #9CA3AF; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+        }
         .check-btn input:checked + span { background: #FBBF24; color: black; border-color: #F59E0B; }
+
+        /* Dropdown Personalizado (Dark Mode) */
+        .custom-select-btn { @apply input-dark flex justify-between items-center cursor-pointer; }
+        .custom-options { 
+            position: absolute; top: 100%; left: 0; right: 0; 
+            background: #1F2937; border: 1px solid #4b5563; border-radius: 8px; 
+            margin-top: 4px; z-index: 50; overflow: hidden; display: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        .custom-options.show { display: block; animation: fadeIn 0.2s; }
+        .custom-option { padding: 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid #374151; color: white; }
+        .custom-option:hover { background-color: #374151; color: #FBBF24; }
+        .custom-option:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4">
 
+    <!-- CONFIGURAÇÃO SUPABASE -->
     <script>
-        // --- MONITOR DE ERROS (PARA NÃO FICAR SILENCIOSO) ---
-        window.onerror = function(msg, url, line, col, error) {
-            alert("Erro interno: " + msg + "\nLinha: " + line);
-            return false;
-        };
-
-        // --- CONFIGURAÇÃO SUPABASE ---
+        // ---------------------------------------------------------
+        // CHAVES COM .TRIM() (FIX)
+        // ---------------------------------------------------------
         const SUPABASE_URL = 'https://ofpnnijkhgsjarixoyhg.supabase.co'.trim(); 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvZnBubmlqa2hnc2phcml4b3loZyIsImJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1MDY1Mjc2LCJleHAiOjIwODA2NDEyNzZ9.dNOIIETmTz3l1HvhuT-ihAiymJqiaYZnklzzBzDGCFU'.trim();
         
         let sbClient = null;
-        try { sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } 
-        catch(e) { console.error("Erro Supabase:", e); alert("Erro de conexão DB."); }
+        try {
+            sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch(e) {
+            console.error("Erro ao iniciar Supabase:", e);
+            alert("Erro crítico: Falha na conexão com o Banco de Dados.");
+        }
 
         let userSession = null;
 
@@ -70,6 +95,7 @@
             <h1 class="text-3xl font-bold text-white mb-1">Parceiro Drop</h1>
             <p class="text-gray-400 text-sm">Entregas Rápidas</p>
         </div>
+        
         <div id="form-login" class="space-y-4 w-full">
             <input type="email" id="log-email" class="input-dark text-center" placeholder="E-mail">
             <input type="password" id="log-senha" class="input-dark text-center" placeholder="Senha">
@@ -78,51 +104,129 @@
         </div>
     </div>
 
-    <!-- TELA 2: CADASTRO -->
+    <!-- TELA 2: CADASTRO COMPLETO -->
     <div id="screen-cadastro" class="hidden w-full max-w-md fade-in pb-10">
         <div class="flex items-center mb-6">
             <button onclick="showScreen('welcome')" class="text-gray-400 hover:text-white mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
             <h2 class="text-xl font-bold text-white">Novo Parceiro</h2>
         </div>
 
+        <!-- DADOS PESSOAIS -->
         <p class="section-title">Dados Pessoais</p>
         <div class="space-y-4">
-            <div><input type="text" id="cad-nome" class="input-dark" placeholder="Nome Completo" onblur="validarCampo('nome')"><p id="msg-nome" class="msg-error">Nome inválido.</p></div>
-            <div><input type="text" id="cad-cpf" class="input-dark" placeholder="CPF (000.000.000-00)" onblur="validarCampo('cpf')"><p id="msg-cpf" class="msg-error">CPF inválido.</p></div>
+            <div>
+                <input type="text" id="cad-nome" class="input-dark" placeholder="Nome Completo*" onblur="validarCampo('nome')">
+                <p id="msg-nome" class="msg-error">Campo obrigatório.</p>
+            </div>
+            
+            <div>
+                <input type="text" id="cad-cpf" class="input-dark" placeholder="CPF (000.000.000-00)*" onblur="validarCampo('cpf')">
+                <p id="msg-cpf" class="msg-error">CPF inválido.</p>
+            </div>
+            
             <div class="grid grid-cols-2 gap-3">
-                <div><input type="text" id="cad-nasc" class="input-dark text-center" placeholder="Nascimento" onblur="calcularIdade()"><p id="msg-nasc" class="msg-error">Data Inválida.</p></div>
+                <div>
+                    <input type="text" id="cad-nasc" class="input-dark text-center" placeholder="Data Nasc.*" onblur="calcularIdade()">
+                    <p id="msg-nasc" class="msg-error">Inválida.</p>
+                </div>
                 <input type="text" id="cad-idade" class="input-dark text-center input-readonly" placeholder="Idade" readonly>
             </div>
-            <select id="cad-sexo" class="input-dark"><option value="" disabled selected>Sexo</option><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option></select>
-            <div><input type="text" id="cad-zap" class="input-dark" placeholder="WhatsApp (84 9...)" onblur="validarCampo('zap')"><p id="msg-zap" class="msg-error">Número inválido.</p></div>
-            <div class="border border-dashed border-gray-600 rounded-lg p-4 text-center mt-2"><p class="text-xs text-gray-400 mb-2">Foto do RG ou CNH</p><input type="file" id="cad-foto-doc" class="text-xs text-gray-500 file:bg-yellow-500 file:text-black"/></div>
+            
+            <!-- MENU FLUTUANTE SEXO -->
+            <div class="relative">
+                <button type="button" class="custom-select-btn" onclick="toggleDropdown('sexo')">
+                    <span id="display-sexo" class="text-gray-400">Sexo*</span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </button>
+                <input type="hidden" id="cad-sexo" value="">
+                <div id="list-sexo" class="custom-options">
+                    <div class="custom-option" onclick="selectOption('sexo', 'Masculino')">Masculino</div>
+                    <div class="custom-option" onclick="selectOption('sexo', 'Feminino')">Feminino</div>
+                </div>
+                <p id="msg-sexo" class="msg-error">Selecione o sexo.</p>
+            </div>
+            
+            <div>
+                <input type="text" id="cad-zap" class="input-dark" placeholder="WhatsApp (DDD+9...)*" onblur="validarCampo('zap')">
+                <p id="msg-zap" class="msg-error">Inválido.</p>
+            </div>
+            
+            <!-- Foto Doc -->
+            <div class="border border-dashed border-gray-600 rounded-lg p-4 text-center mt-2">
+                <p class="text-xs text-gray-400 mb-2">Foto do RG ou CNH (Frente e Verso)*</p>
+                <input type="file" id="cad-foto-doc" class="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-black hover:file:bg-yellow-400"/>
+                <p id="msg-foto-doc" class="msg-error">Foto obrigatória.</p>
+            </div>
         </div>
 
+        <!-- ENDEREÇO -->
         <p class="section-title">Endereço</p>
         <div class="space-y-3">
-            <div class="relative"><input type="text" id="cad-cep" class="input-dark" placeholder="CEP" onblur="buscarCep()"><i class="fas fa-search absolute right-3 top-3.5 text-gray-400"></i><p id="msg-cep" class="msg-error">CEP erro.</p></div>
+            <div class="relative">
+                <input type="text" id="cad-cep" class="input-dark" placeholder="CEP*" onblur="buscarCep()">
+                <i class="fas fa-search absolute right-3 top-3.5 text-gray-400"></i>
+                <p id="msg-cep" class="msg-error">CEP obrigatório.</p>
+            </div>
             <input type="text" id="cad-rua" class="input-dark input-readonly" placeholder="Rua" readonly>
-            <div class="grid grid-cols-3 gap-3"><input type="text" id="cad-num" class="input-dark col-span-1" placeholder="Nº"><input type="text" id="cad-comp" class="input-dark col-span-2" placeholder="Comp. (Opcional)"></div>
-            <div class="grid grid-cols-2 gap-3"><input type="text" id="cad-bairro" class="input-dark input-readonly" placeholder="Bairro" readonly><input type="text" id="cad-cidade" class="input-dark input-readonly" placeholder="Cidade" readonly></div>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-1">
+                    <input type="text" id="cad-num" class="input-dark" placeholder="Nº*">
+                    <p id="msg-num" class="msg-error">Obrigatório.</p>
+                </div>
+                <input type="text" id="cad-comp" class="input-dark col-span-2" placeholder="Complemento (Opcional)">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="cad-bairro" class="input-dark input-readonly" placeholder="Bairro" readonly>
+                <input type="text" id="cad-cidade" class="input-dark input-readonly" placeholder="Cidade" readonly>
+            </div>
         </div>
 
-        <p class="section-title">Emergência</p>
+        <!-- CONTATO EMERGÊNCIA -->
+        <p class="section-title">Contato de Emergência</p>
         <div class="space-y-3 bg-gray-800 p-3 rounded-lg">
-            <input type="text" id="emer-nome" class="input-dark" placeholder="Nome Contato">
-            <div class="grid grid-cols-2 gap-3"><input type="text" id="emer-parentesco" class="input-dark" placeholder="Parentesco"><input type="text" id="emer-zap" class="input-dark" placeholder="Tel Contato"></div>
+            <div>
+                <input type="text" id="emer-nome" class="input-dark" placeholder="Nome do Contato*">
+                <p id="msg-emer-nome" class="msg-error">Obrigatório.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <input type="text" id="emer-parentesco" class="input-dark" placeholder="Parentesco*">
+                    <p id="msg-emer-parentesco" class="msg-error">Obrigatório.</p>
+                </div>
+                <div>
+                    <input type="text" id="emer-zap" class="input-dark" placeholder="Tel Contato*">
+                    <p id="msg-emer-zap" class="msg-error">Obrigatório.</p>
+                </div>
+            </div>
         </div>
 
-        <p class="section-title">Moto</p>
+        <!-- MOTO -->
+        <p class="section-title">Informações da Moto</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-                <div><input type="text" id="moto-placa" class="input-dark uppercase font-bold text-center" placeholder="Placa" onblur="validarCampo('placa')"><p id="msg-placa" class="msg-error">Inválida.</p></div>
-                <input type="text" id="moto-modelo" class="input-dark" placeholder="Modelo">
+                <div>
+                    <input type="text" id="moto-placa" class="input-dark uppercase font-bold text-center" placeholder="Placa*" onblur="validarCampo('placa')">
+                    <p id="msg-placa" class="msg-error">Inválida.</p>
+                </div>
+                <div>
+                    <input type="text" id="moto-modelo" class="input-dark" placeholder="Modelo*">
+                    <p id="msg-moto-modelo" class="msg-error">Obrigatório.</p>
+                </div>
             </div>
-            <input type="text" id="moto-cor" class="input-dark" placeholder="Cor">
-            <div class="border border-dashed border-gray-600 rounded-lg p-4 text-center mt-2"><p class="text-xs text-gray-400 mb-2">Foto CRLV</p><input type="file" id="cad-foto-crlv" class="text-xs text-gray-500 file:bg-yellow-500 file:text-black"/></div>
+            <div>
+                <input type="text" id="moto-cor" class="input-dark" placeholder="Cor da Moto*">
+                <p id="msg-moto-cor" class="msg-error">Obrigatório.</p>
+            </div>
+            
+            <div class="border border-dashed border-gray-600 rounded-lg p-4 text-center mt-2">
+                <p class="text-xs text-gray-400 mb-2">Foto do CRLV (Documento da Moto)*</p>
+                <input type="file" id="cad-foto-crlv" class="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-black hover:file:bg-yellow-400"/>
+                <p id="msg-foto-crlv" class="msg-error">Foto obrigatória.</p>
+            </div>
         </div>
 
-        <p class="section-title">Disponibilidade</p>
+        <!-- DISPONIBILIDADE -->
+        <p class="section-title">Disponibilidade*</p>
         <div class="check-group justify-center">
             <label class="check-btn"><input type="checkbox" name="disp" value="Manhã"><span>Manhã</span></label>
             <label class="check-btn"><input type="checkbox" name="disp" value="Tarde"><span>Tarde</span></label>
@@ -132,18 +236,26 @@
             <label class="check-btn"><input type="checkbox" id="check-integral" onchange="toggleIntegral()"><span>INTEGRAL</span></label>
             <label class="check-btn"><input type="checkbox" id="check-renda" onchange="toggleRenda()"><span>RENDA EXTRA</span></label>
         </div>
+        <p id="msg-disp" class="msg-error text-center">Selecione pelo menos uma opção.</p>
 
-        <p class="section-title mt-6">Login</p>
+        <!-- DADOS LOGIN -->
+        <p class="section-title mt-6">Criar Login</p>
         <div class="space-y-3">
-            <div><input type="email" id="cad-email" class="input-dark" placeholder="Seu E-mail" onblur="validarCampo('email')"><p id="msg-email" class="msg-error">Inválido.</p></div>
-            <div><input type="password" id="cad-senha" class="input-dark" placeholder="Senha (Min 6)" onblur="validarCampo('senha')"><p id="msg-senha" class="msg-error">Curta demais.</p></div>
+            <div>
+                <input type="email" id="cad-email" class="input-dark" placeholder="Seu melhor E-mail*" onblur="validarCampo('email')">
+                <p id="msg-email" class="msg-error">E-mail inválido.</p>
+            </div>
+            <div>
+                <input type="password" id="cad-senha" class="input-dark" placeholder="Crie uma Senha (Mín. 6 dígitos)*" onblur="validarCampo('senha')">
+                <p id="msg-senha" class="msg-error">Mínimo 6 caracteres.</p>
+            </div>
         </div>
 
         <button onclick="enviarCadastro()" id="btn-cadastrar" class="w-full btn-action py-4 rounded-xl shadow-lg mt-6 text-lg">ENVIAR CADASTRO</button>
-        <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados serão analisados.</p>
+        <p class="text-center text-xs text-gray-500 mt-4 pb-10">Seus dados passarão por análise.</p>
     </div>
 
-    <!-- TELA 3: FEED -->
+    <!-- TELA 3: FEED (PLACEHOLDER) -->
     <div id="screen-feed" class="hidden app-container p-4 fade-in text-center pt-20">
         <h1 class="text-2xl font-bold text-white">Bem-vindo!</h1>
         <p class="text-gray-400 mt-2">Seu cadastro foi recebido.</p>
@@ -151,61 +263,78 @@
     </div>
 
     <script>
+        // MÁSCARAS
         $(document).ready(function(){ 
-            $('#cad-cpf').mask('000.000.000-00'); $('#cad-nasc').mask('00/00/0000'); $('#cad-cep').mask('00000-000');
-            $('#cad-zap').mask('(00) 00000-0000'); $('#emer-zap').mask('(00) 00000-0000');
+            $('#cad-cpf').mask('000.000.000-00');
+            $('#cad-nasc').mask('00/00/0000');
+            $('#cad-cep').mask('00000-000');
+            $('#cad-zap').mask('(00) 00000-0000');
+            $('#emer-zap').mask('(00) 00000-0000');
             $('#moto-placa').on('input', function() { this.value = this.value.toUpperCase(); });
         });
+
+        // MENU FLUTUANTE (DROPDOWN)
+        function toggleDropdown(id) {
+            const list = document.getElementById(`list-${id}`);
+            list.classList.toggle('show');
+        }
+        function selectOption(id, value) {
+            document.getElementById(`cad-${id}`).value = value;
+            document.getElementById(`display-${id}`).innerText = value;
+            document.getElementById(`display-${id}`).style.color = "white"; // Muda cor pra indicar seleção
+            document.getElementById(`list-${id}`).classList.remove('show');
+            document.getElementById('msg-sexo').style.display = 'none';
+        }
+        document.addEventListener('click', function(e) { if (!e.target.closest('.relative')) { document.querySelectorAll('.custom-options').forEach(el => el.classList.remove('show')); } });
+
 
         function showScreen(id) {
             ['welcome', 'cadastro', 'feed'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
             document.getElementById('screen-'+id).classList.remove('hidden');
         }
 
-        // --- VALIDAÇÃO VISUAL ---
+        // --- SISTEMA DE VALIDAÇÃO VISUAL ---
         function mostrarErro(id, mostrar) {
-            const el = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById(id);
+            const el = document.getElementById('cad-' + id) || document.getElementById('moto-' + id) || document.getElementById('emer-' + id) || document.getElementById(id);
             const msg = document.getElementById('msg-' + id);
-            if(mostrar) { el.classList.add('input-error'); el.classList.remove('input-success'); if(msg) msg.style.display='block'; }
-            else { el.classList.remove('input-error'); el.classList.add('input-success'); if(msg) msg.style.display='none'; }
+            
+            if(el) {
+                if (mostrar) {
+                    el.classList.add('input-error');
+                    el.classList.remove('input-success');
+                    if(msg) msg.style.display = 'block';
+                } else {
+                    el.classList.remove('input-error');
+                    el.classList.add('input-success');
+                    if(msg) msg.style.display = 'none';
+                }
+            }
         }
 
         function validarCampo(tipo) {
             if(tipo === 'cpf') mostrarErro('cpf', !validarCPF(document.getElementById('cad-cpf').value));
             if(tipo === 'zap') { const z=document.getElementById('cad-zap').value.replace(/\D/g,''); mostrarErro('zap', z.length!==11 || z[2]!=='9'); }
+            if(tipo === 'emer-zap') { const z=document.getElementById('emer-zap').value.replace(/\D/g,''); mostrarErro('emer-zap', z.length!==11 || z[2]!=='9'); }
             if(tipo === 'placa') mostrarErro('placa', !validarPlaca(document.getElementById('moto-placa').value));
             if(tipo === 'email') mostrarErro('email', !/\S+@\S+\.\S+/.test(document.getElementById('cad-email').value));
             if(tipo === 'senha') mostrarErro('senha', document.getElementById('cad-senha').value.length < 6);
             if(tipo === 'nome') mostrarErro('nome', document.getElementById('cad-nome').value.length < 5);
         }
 
+        // ... (Funções calcularIdade, buscarCep, validarCPF, validarPlaca, toggleIntegral, toggleRenda mantidas igual anterior) ...
         function calcularIdade() {
             const d = document.getElementById('cad-nasc').value;
-            if (d.length !== 10) return;
-            const p = d.split('/'), h = new Date(), n = new Date(p[2], p[1]-1, p[0]);
-            let i = h.getFullYear() - n.getFullYear();
-            if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) i--;
+            if(d.length!==10) { mostrarErro('nasc', true); return; }
+            const p=d.split('/'), h=new Date(), n=new Date(p[2],p[1]-1,p[0]);
+            let i=h.getFullYear()-n.getFullYear(); if(h<new Date(h.getFullYear(),n.getMonth(),n.getDate()))i--;
             
-            const campoNasc = document.getElementById('cad-nasc');
-            const campoIdade = document.getElementById('cad-idade');
-            const msg = document.getElementById('msg-nasc');
-
-            if (isNaN(i) || i < 0) {
-                campoNasc.classList.add('input-error');
-                if(msg) msg.style.display = 'block';
-                campoIdade.value = '';
-            } else {
-                campoNasc.classList.remove('input-error');
-                campoNasc.classList.add('input-success');
-                if(msg) msg.style.display = 'none';
-                campoIdade.value = i;
-                if(i < 18) alert("Maior de 18 anos obrigatório.");
-            }
+            if(isNaN(i) || i < 0) { mostrarErro('nasc', true); document.getElementById('cad-idade').value = ''; }
+            else { mostrarErro('nasc', false); document.getElementById('cad-idade').value = i; if(i<18) alert("Maior de 18 anos."); }
         }
 
         async function buscarCep() {
             let cep = document.getElementById('cad-cep').value.replace(/\D/g, '');
-            if (cep.length !== 8) { document.getElementById('cad-cep').classList.add('input-error'); return; }
+            if (cep.length !== 8) { mostrarErro('cep', true); return; }
             try {
                 const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                 const data = await res.json();
@@ -214,14 +343,12 @@
                     document.getElementById('cad-bairro').value = data.bairro;
                     document.getElementById('cad-cidade').value = `${data.localidade}/${data.uf}`;
                     document.getElementById('cad-num').focus();
-                    document.getElementById('cad-cep').classList.remove('input-error');
-                    document.getElementById('cad-cep').classList.add('input-success');
-                    document.getElementById('msg-cep').style.display='none';
-                } else { document.getElementById('cad-cep').classList.add('input-error'); document.getElementById('msg-cep').style.display='block'; }
-            } catch(e) {}
+                    mostrarErro('cep', false);
+                } else { mostrarErro('cep', true); }
+            } catch (e) { mostrarErro('cep', true); }
         }
 
-        function validarCPF(cpf) {
+            function validarCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, ''); if(cpf.length!=11||/^(\d)\1{10}$/.test(cpf))return false;
             let s=0,r; for(let i=1;i<=9;i++)s+=parseInt(cpf.substring(i-1,i))*(11-i); r=(s*10)%11; if(r==10||r==11)r=0; if(r!=parseInt(cpf.substring(9,10)))return false;
             s=0; for(let i=1;i<=10;i++)s+=parseInt(cpf.substring(i-1,i))*(12-i); r=(s*10)%11; if(r==10||r==11)r=0; if(r!=parseInt(cpf.substring(10,11)))return false; return true;
@@ -237,64 +364,109 @@
             const senha = document.getElementById('log-senha').value;
             const btn = document.getElementById('btn-login');
             btn.innerText = "..."; btn.disabled = true;
-            const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; } else { location.reload(); }
+            const { data, error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+            if (error) { alert("Login falhou."); btn.innerText = "ENTRAR"; btn.disabled = false; }
+            else { location.reload(); }
         }
 
-        // --- CORREÇÃO DO CADASTRO ---
+        // --- ENVIAR CADASTRO (VALIDA TUDO) ---
         async function enviarCadastro() {
+            // Coleta Dados
+            const nome = document.getElementById('cad-nome').value;
+            const cpf = document.getElementById('cad-cpf').value;
+            const nasc = document.getElementById('cad-nasc').value;
+            const sexo = document.getElementById('cad-sexo').value;
+            const zap = document.getElementById('cad-zap').value;
+            const cep = document.getElementById('cad-cep').value;
+            const num = document.getElementById('cad-num').value;
+            
+            const emerNome = document.getElementById('emer-nome').value;
+            const emerPar = document.getElementById('emer-parentesco').value;
+            const emerZap = document.getElementById('emer-zap').value;
+            
+            const placa = document.getElementById('moto-placa').value;
+            const modelo = document.getElementById('moto-modelo').value;
+            const cor = document.getElementById('moto-cor').value;
+            
+            const email = document.getElementById('cad-email').value;
+            const senha = document.getElementById('cad-senha').value;
+            
+            const docFile = document.getElementById('cad-foto-doc').files.length;
+            const crlvFile = document.getElementById('cad-foto-crlv').files.length;
+
+            let temErro = false;
+
+            // Validações Visuais (Marca vermelho o que falta)
+            if(!nome) { mostrarErro('nome', true); temErro = true; }
+            if(!validarCPF(cpf)) { mostrarErro('cpf', true); temErro = true; }
+            if(nasc.length < 10) { mostrarErro('nasc', true); temErro = true; }
+            if(!sexo) { document.getElementById('msg-sexo').style.display = 'block'; temErro = true; }
+            if(!validarPlaca(placa)) { mostrarErro('placa', true); temErro = true; }
+            if(!modelo) { mostrarErro('moto-modelo', true); temErro = true; }
+            if(!cor) { mostrarErro('moto-cor', true); temErro = true; }
+            if(!num) { mostrarErro('num', true); temErro = true; }
+            if(!cep) { mostrarErro('cep', true); temErro = true; }
+            if(!emerNome) { mostrarErro('emer-nome', true); temErro = true; }
+            if(!emerPar) { mostrarErro('emer-parentesco', true); temErro = true; }
+            
+            // Valida Zap (DDD+9+Num)
+            const zClean = zap.replace(/\D/g, '');
+            if(zClean.length !== 11 || zClean[2] !== '9') { mostrarErro('zap', true); temErro = true; }
+            const zEmerClean = emerZap.replace(/\D/g, '');
+            if(zEmerClean.length !== 11 || zEmerClean[2] !== '9') { mostrarErro('emer-zap', true); temErro = true; }
+
+            // Valida Arquivos e Login
+            if(docFile === 0) { document.getElementById('msg-foto-doc').style.display='block'; temErro=true; }
+            else document.getElementById('msg-foto-doc').style.display='none';
+
+            if(crlvFile === 0) { document.getElementById('msg-foto-crlv').style.display='block'; temErro=true; }
+            else document.getElementById('msg-foto-crlv').style.display='none';
+            
+            if(!email) { mostrarErro('email', true); temErro = true; }
+            if(senha.length < 6) { mostrarErro('senha', true); temErro = true; }
+
+            // Verifica Disponibilidade
+            let disp = []; document.querySelectorAll('input[name="disp"]:checked').forEach(c => disp.push(c.value));
+            if(document.getElementById('check-integral').checked) disp.push('Integral');
+            if(document.getElementById('check-renda').checked) disp.push('Renda Extra');
+            
+            if(disp.length === 0) { document.getElementById('msg-disp').style.display = 'block'; temErro = true; }
+            else document.getElementById('msg-disp').style.display = 'none';
+
+            // Se tiver erro, para aqui
+            if (temErro) {
+                alert("Verifique os campos em vermelho.");
+                // Rola para o topo para ver os erros
+                document.getElementById('screen-cadastro').scrollIntoView({behavior: 'smooth'});
+                return;
+            }
+
+            const btn = document.getElementById('btn-cadastrar');
+            btn.innerText = "Enviando..."; btn.disabled = true;
+
+            const metaData = {
+                tipo_usuario: 'motoboy',
+                nome: nome, cpf: cpf, whatsapp: zap, placa: placa,
+                modelo: modelo, cor: cor, disponibilidade: disp.join(', ')
+            };
+
             try {
-                // COLETA COM IDs CORRETOS
-                const nome = document.getElementById('cad-nome').value;
-                const cpf = document.getElementById('cad-cpf').value;
-                const zap = document.getElementById('cad-zap').value;
-                
-                // MOTO (IDs Corrigidos)
-                const placa = document.getElementById('moto-placa').value;
-                const modelo = document.getElementById('moto-modelo').value;
-                const cor = document.getElementById('moto-cor').value;
-                
-                const email = document.getElementById('cad-email').value;
-                const senha = document.getElementById('cad-senha').value;
-
-                // Valida Campos Vazios
-                if (!nome || !cpf || !zap || !placa || !modelo || !email || !senha) throw new Error("Preencha todos os campos.");
-                if (!validarCPF(cpf)) throw new Error("CPF Inválido.");
-                if (senha.length < 6) throw new Error("Senha muito curta.");
-
-                const btn = document.getElementById('btn-cadastrar');
-                btn.innerText = "Enviando..."; btn.disabled = true;
-
-                // Coleta Checkboxes
-                let disp = [];
-                document.querySelectorAll('input[name="disp"]:checked').forEach(c => disp.push(c.value));
-                if(document.getElementById('check-integral').checked) disp.push('Integral');
-                if(document.getElementById('check-renda').checked) disp.push('Renda Extra');
-
-                // Metadados
-                const meta = {
-                    tipo_usuario: 'motoboy',
-                    nome: nome, cpf: cpf, whatsapp: zap,
-                    placa: placa, modelo: modelo, cor: cor,
-                    disponibilidade: disp.join(', ')
-                };
-
-                const { error } = await sbClient.auth.signUp({ email: email, password: senha, options: { data: meta } });
+                const { data, error } = await sbClient.auth.signUp({
+                    email: email,
+                    password: senha,
+                    options: { data: metaData }
+                });
 
                 if (error) throw error;
 
-                alert("Cadastro Realizado!");
-                window.location.reload();
+                alert("Cadastro realizado com sucesso! Aguarde a aprovação da central.");
+                location.reload();
 
             } catch (e) {
-                alert(e.message);
-                const btn = document.getElementById('btn-cadastrar');
-                if(btn) { btn.innerText = "ENVIAR CADASTRO"; btn.disabled = false; }
+                alert("Erro ao cadastrar: " + e.message);
+                btn.innerText = "ENVIAR CADASTRO"; btn.disabled = false;
             }
         }
     </script>
 </body>
 </html>
-
-
-                                                    
